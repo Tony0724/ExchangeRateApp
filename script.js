@@ -19,9 +19,9 @@ fetch('https://api.manana.kr/exchange.json')
       const value = item.symbol.replace('USD/', '');
       let text = '';
       if (item.kr === undefined) {
-        text = item.symbol + ' ' + '-정보가 없습니다.';
+        text = '(' + item.symbol + ')' + ' ' + '-정보가 없습니다.';
       } else {
-        text = item.kr + ' ' + item.symbol;
+        text = item.kr + ' ' + '(' + item.symbol + ')';
       }
       return { value, text };
     });
