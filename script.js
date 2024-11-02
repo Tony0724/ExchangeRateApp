@@ -4,6 +4,30 @@ const toCurrencySelect = document.getElementById('toCurrency');
 const amountInput = document.getElementById('amount');
 const resultText = document.getElementById('result');
 
+// displayDeposit 함수를 정의합니다.
+const displayDeposit = (target) => {
+  var unitWords = ['', '만', '억', '조', '경'];
+  var splitUnit = 10000;
+  var splitCount = unitWords.length;
+  var resultArray = [];
+  var resultString = '';
+
+  for (var i = 0; i < splitCount; i++) {
+    var unitResult = (target % Math.pow(splitUnit, i + 1)) / Math.pow(splitUnit, i);
+    unitResult = Math.floor(unitResult);
+    if (unitResult > 0) {
+      resultArray[i] = unitResult;
+    }
+  }
+
+  for (var i = 0; i < resultArray.length; i++) {
+    if (!resultArray[i]) continue;
+    resultString = String(resultArray[i]) + unitWords[i] + resultString;
+  }
+
+  return resultString;
+};
+
 // 환율 정보를 가져오고 select 옵션을 설정합니다.
 fetch('https://api.manana.kr/exchange.json')
   .then(response => response.json())
@@ -18,7 +42,38 @@ fetch('https://api.manana.kr/exchange.json')
     const options = result.map(item => {
       const value = item.symbol.replace('USD/', '');
       let text = '';
-      if (item.kr === undefined) {
+      if (item.symbol === "CNH") {
+        text = '중화인민공화국 국외용 위안(CNY와 같음.)' + ' ' + '(' + item.symbol + ')'; 
+      } else if(item.symbol === "CYP") {
+        text = '키프로스 파운드' + ' ' + '(' + item.symbol + ')';
+      } else if(item.symbol === "DEM") {
+        text = '독일 마르크' + ' ' + '(' + item.symbol + ')';
+      } else if(item.symbol === "ECS") {
+        text = 'eSync Network' + ' ' + '(' + item.symbol + ')';
+      } else if(item.symbol === "FRF") {
+        text = '프랑스 프랑' + ' ' + '(' + item.symbol + ')';
+      } else if(item.symbol === 'IEP') {
+        text = '아일랜드 파운드' + ' ' + '(' + item.symbol + ')';
+      } else if(item.symbol === 'ITL') {
+        text = '이탈리아 리라' + ' ' + '(' + item.symbol + ')';
+      } else if(item.symbol === "LTL") {
+        text = '리투아니아 리타' + ' ' + '(' + item.symbol + ')';
+      } else if(item.symbol === 'LVL') {
+        text = '라트비아 라트' + ' ' + '(' + item.symbol + ')';
+      } else if(item.symbol === 'MGA') {
+        text = '마다가스카르 아리아리' + ' ' + '(' + item.symbol + ')';
+      } else if(item.symbol === 'MRO') {
+        text = '모리타니 우기야' + ' ' + '(' + item.symbol + ')';
+      } else if(item.symbol === 'SIT') {
+        text = '슬로베니아 톨라르' + ' ' + '(' + item.symbol + ')';
+      } else if(item.symbol === 'XCP') {
+        text = 'Counterparty 암호화폐' + ' ' + '(' + item.symbol + ')';
+      } else if(item.symbol === 'BRX') {
+        text = 'Breakout Stake 암호화폐' + ' ' + '(' + item.symbol + ')';
+      } else if(item.symbol === 'HUX') {
+        text = 'high X' + ' ' + '(' + item.symbol + ')';
+      }
+      else if(item.kr === undefined) {
         text = '(' + item.symbol + ')' + ' ' + '-정보가 없습니다.';
       } else {
         text = item.kr + ' ' + '(' + item.symbol + ')';
@@ -67,7 +122,11 @@ fetch('https://api.manana.kr/exchange.json')
         .then(data => {
           const exchangeRate = data[0].rate;
           const convertedAmount = (amount * exchangeRate).toFixed(2);
-          resultText.innerText = `${amount} ${fromCurrency} = ${convertedAmount} ${toCurrency}`;
+
+          const convertedAmountWithoutComma = parseFloat(convertedAmount.replace(/,/g, ''));
+          const formattedValueWithUnit = displayDeposit(convertedAmountWithoutComma);
+
+          resultText.innerText = `${amount} ${fromCurrency} = ${formattedValueWithUnit} ${toCurrency}`;
         })
         .catch(error => {
           console.error('Error fetching exchange rate:', error);
