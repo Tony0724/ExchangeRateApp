@@ -71,7 +71,7 @@ fetch('https://api.manana.kr/exchange.json')
       } else if(item.symbol === 'BRX') {
         text = 'Breakout Stake 암호화폐' + ' ' + '(' + item.symbol + ')';
       } else if(item.symbol === 'HUX') {
-        text = 'high X' + ' ' + '(' + item.symbol + ')';
+        text = 'high X 암호화폐' + ' ' + '(' + item.symbol + ')';
       }
       else if(item.kr === undefined) {
         text = '(' + item.symbol + ')' + ' ' + '-정보가 없습니다.';
@@ -88,7 +88,7 @@ fetch('https://api.manana.kr/exchange.json')
       const optionElement = document.createElement('option');
       optionElement.value = option.value;
       optionElement.text = option.text;
-      if (option.value === 'SGD') {
+      if (option.value === 'USD') {
         optionElement.selected = true;
       }
       fromCurrencySelect.appendChild(optionElement);
