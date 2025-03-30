@@ -14,9 +14,10 @@
     <label for="toCurrency">To Currency:</label>
     <select id="toCurrency" class="picker"></select>
     <label for="amount">Amount:</label>
-    <input id="amount" class="input" placeholder="please enter amount">
+    <input id="amount" class="input" placeholder="please enter amount" value="1">
     <button id="convertButton" class="button">Convert</button>
     <p id="result" class="result"></p>
+    <p class="reference">이 사이트에서 제공하는 환율 정보는 <a href="https://api.manana.kr/exchange.json">https://api.manana.kr/exchange.json</a>에서 받아온 데이터를 기초로 합니다.</p> <!-- 반응형으로 만들 때 글자 크기와 여백 등을 고려해서 css 코드를 좀 추가해야 함. -->
   </div>
   <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
   <script src="script.js"></script>

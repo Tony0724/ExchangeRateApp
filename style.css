@@ -67,3 +67,8 @@ label {
 .button:hover {
   background-color: #0056b3;
 }
+
+.reference {
+  color: rgb(73, 73, 238);
+  font-style: italic;
+}
