@@ -71,4 +71,6 @@ label {
 .reference {
   color: rgb(73, 73, 238);
   font-style: italic;
+  margin-left: 50px;
+  margin-right: 50px;
 }
