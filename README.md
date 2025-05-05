@@ -12,6 +12,8 @@ Thank you for reading.
 
 1. ~~Set USD(U.S.A.) to KRW(South Korea) default~~ **(done)**
 
-2. Offer multiple languages ***(will make)***
+2. Offer multiple languages ***(70% done)***
+
+   We will make another languages and improve our translate system.
 
 3. ...(later)

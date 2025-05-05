@@ -4,198 +4,181 @@ const toCurrencySelect = document.getElementById('toCurrency');
 const amountInput = document.getElementById('amount');
 const resultText = document.getElementById('result');
 
-// displayDeposit 함수를 정의합니다.
-const displayDeposit = (target) => {
-  var unitWords = ['', '만', '억', '조', '경'];
-  var splitUnit = 10000;
-  var splitCount = unitWords.length;
-  var resultArray = [];
-  var resultString = '';
+const isKorean = navigator.language === 'ko-KR';
+if (isKorean) {
+  document.getElementById("lang-select").options[1].setAttribute("selected", true);
+}
 
-  for (var i = 0; i < splitCount; i++) {
-    var unitResult = (target % Math.pow(splitUnit, i + 1)) / Math.pow(splitUnit, i);
-    unitResult = Math.floor(unitResult);
+// i18n 초기화
+i18next.init({
+  lng: isKorean ? "ko" : "en",
+  debug: true,
+  resources: {
+    ko: {
+      translation: {
+        header: "환율 앱",
+        fromCurrency: "원래 단위(화폐):",
+        ToCurrency: "바꾼 단위(화폐):",
+        amount: "가격(양):",
+        button: "변환하기",
+        reference: `이 사이트에서 제공하는 환율 정보는 <a href="https://api.manana.kr/exchange.json" target="_blank">https://api.manana.kr/exchange.json</a>에서 받아온 데이터를 기초로 합니다.`
+      }
+    },
+    en: {
+      translation: {
+        header: "Exchange Rate App",
+        fromCurrency: "From Currency:",
+        ToCurrency: "To Currency:",
+        amount: "Amount:",
+        button: "Convert",
+        reference: `The exchange rate information provided by this site is based on data received from <a href="https://api.manana.kr/exchange.json" target="_blank">https://api.manana.kr/exchange.json</a>.`
+      }
+    }
+  }
+});
+
+// 화면 내 텍스트 업데이트
+function updateContent() {
+  document.getElementsByTagName("h1")[0].innerHTML = i18next.t("header");
+  document.querySelector('label[for="fromCurrency"]').innerHTML = i18next.t("fromCurrency");
+  document.querySelector('label[for="toCurrency"]').innerHTML = i18next.t("ToCurrency");
+  document.querySelector('label[for="amount"]').innerHTML = i18next.t("amount");
+  document.getElementById('convertButton').innerHTML = i18next.t("button");
+  document.getElementsByTagName("p")[1].innerHTML = i18next.t("reference");
+}
+
+// 숫자를 단위별로 나눔
+const displayDeposit = (target) => {
+  const unitWords = ['', '만', '억', '조', '경'];
+  const splitUnit = 10000;
+  const splitCount = unitWords.length;
+  const resultArray = [];
+  let resultString = '';
+
+  for (let i = 0; i < splitCount; i++) {
+    const unitResult = Math.floor((target % Math.pow(splitUnit, i + 1)) / Math.pow(splitUnit, i));
     if (unitResult > 0) {
       resultArray[i] = unitResult;
     }
   }
 
-  for (var i = 0; i < resultArray.length; i++) {
+  for (let i = 0; i < resultArray.length; i++) {
     if (!resultArray[i]) continue;
-    resultString = String(resultArray[i]) + unitWords[i] + resultString;
+    resultString = resultArray[i] + unitWords[i] + resultString;
   }
 
   return resultString;
 };
 
-// 환율 정보를 가져오고 select 옵션을 설정합니다.
+// 통화 데이터 저장 변수
+let currencyData = [];
+
+// 옵션 생성 로직 분리
+function createOptions(data, lang) {
+  const isKorean = lang === "ko";
+  return data.map(item => {
+    const symbol = item.symbol.replace('=X', '');
+    const value = symbol.replace('USD/', '');
+    const specialCases = {
+      CNH: '중화인민공화국 국외용 위안(CNY와 같음.)|China Overseas Yuan',
+      CYP: '키프로스 파운드|Cypriot pound',
+      DEM: '독일 마르크|German mark',
+      ECS: 'eSync Network(암호화폐|cryptocurrency)',
+      FRF: '프랑스 프랑|French franc',
+      IEP: '아일랜드 파운드|Irish pound',
+      ITL: '이탈리아 리라|Italian lira',
+      LTL: '리투아니아 리타|Lithuania Rita',
+      LVL: '라트비아 라트|Latvian Lat',
+      MGA: '마다가스카르 아리아리|Madagascar Ariari',
+      MRO: '모리타니 우기야|Mauritania Ugiya',
+      SIT: '슬로베니아 톨라르|Slovenian Tolar',
+      XCP: 'Counterparty(암호화폐|cryptocurrency)',
+      BRX: 'Breakout Stake(암호화폐|cryptocurrency)',
+      HUX: 'high X(암호화폐|cryptocurrency)'
+    };
+
+    let text;
+    if (specialCases[symbol]) {
+      text = specialCases[symbol] + ` (${symbol})`;
+    } else {
+      text = isKorean ? `${item.kr} (${symbol})` : `${item.en} (${symbol})`;
+    }
+
+    return { value, text };
+  });
+}
+
+// select 옵션 렌더링
+function renderCurrencyOptions(lang) {
+  const options = createOptions(currencyData, lang);
+  fromCurrencySelect.innerHTML = "";
+  toCurrencySelect.innerHTML = "";
+
+  options.sort((a, b) => a.text.localeCompare(b.text, lang === "ko" ? "ko-KR" : "en-US", { sensitivity: "base" }));
+
+  options.forEach(option => {
+    const fromOpt = document.createElement('option');
+    fromOpt.value = option.value;
+    fromOpt.text = option.text;
+    if (option.value === 'USD') fromOpt.selected = true;
+    fromCurrencySelect.appendChild(fromOpt);
+
+    const toOpt = document.createElement('option');
+    toOpt.value = option.value;
+    toOpt.text = option.text;
+    if (option.value === 'KRW') toOpt.selected = true;
+    toCurrencySelect.appendChild(toOpt);
+  });
+}
+
+// 언어 변경 시 텍스트와 옵션 갱신
+i18next.on("languageChanged", (lng) => {
+  updateContent();
+  renderCurrencyOptions(lng);
+});
+
+// 환율 계산
+function updateExchangeRate() {
+  const fromCurrency = fromCurrencySelect.value;
+  const toCurrency = toCurrencySelect.value;
+  const amount = parseFloat(amountInput.value);
+
+  if (isNaN(amount)) {
+    resultText.innerText = `올바른 값을 입력하십시오. \n Please input a right value.`;
+    return;
+  }
+
+  const url = `https://api.manana.kr/exchange/rate.json?base=${toCurrency}&code=${fromCurrency}`;
+
+  fetch(url)
+    .then(response => response.json())
+    .then(data => {
+      const exchangeRate = data[0].rate;
+      const convertedAmount = (amount * exchangeRate).toFixed(2);
+      const formatted = displayDeposit(parseFloat(convertedAmount.replace(/,/g, '')));
+      resultText.innerText = `${amount} ${fromCurrency} = ${formatted} ${toCurrency}`;
+    })
+    .catch(error => {
+      console.error('Error fetching exchange rate:', error);
+      resultText.innerText = `API를 가져오는 과정에서 에러가 발생했습니다. 다시 시도해주십시오. \n We have a error during getting API. Please try again.`;
+    });
+}
+
+// fetch로 환율 데이터 불러오기
 fetch('https://api.manana.kr/exchange.json')
   .then(response => response.json())
   .then(data => {
-    const result = data.map(item => {
-      if (item.symbol.includes('=X')) {
-        item.symbol = item.symbol.replace('=X', '');
-      }
-      return item;
-    });
+    currencyData = data;
+    renderCurrencyOptions(i18next.language);
+    updateExchangeRate();
 
-    const options = result.map(item => {
-      const value = item.symbol.replace('USD/', '');
-      let text = '';
-      if (item.symbol === "CNH") {
-        text = '중화인민공화국 국외용 위안(CNY와 같음.)' + ' ' + '(' + item.symbol + ')'; 
-      } else if(item.symbol === "CYP") {
-        text = '키프로스 파운드' + ' ' + '(' + item.symbol + ')';
-      } else if(item.symbol === "DEM") {
-        text = '독일 마르크' + ' ' + '(' + item.symbol + ')';
-      } else if(item.symbol === "ECS") {
-        text = 'eSync Network' + ' ' + '(' + item.symbol + ')';
-      } else if(item.symbol === "FRF") {
-        text = '프랑스 프랑' + ' ' + '(' + item.symbol + ')';
-      } else if(item.symbol === 'IEP') {
-        text = '아일랜드 파운드' + ' ' + '(' + item.symbol + ')';
-      } else if(item.symbol === 'ITL') {
-        text = '이탈리아 리라' + ' ' + '(' + item.symbol + ')';
-      } else if(item.symbol === "LTL") {
-        text = '리투아니아 리타' + ' ' + '(' + item.symbol + ')';
-      } else if(item.symbol === 'LVL') {
-        text = '라트비아 라트' + ' ' + '(' + item.symbol + ')';
-      } else if(item.symbol === 'MGA') {
-        text = '마다가스카르 아리아리' + ' ' + '(' + item.symbol + ')';
-      } else if(item.symbol === 'MRO') {
-        text = '모리타니 우기야' + ' ' + '(' + item.symbol + ')';
-      } else if(item.symbol === 'SIT') {
-        text = '슬로베니아 톨라르' + ' ' + '(' + item.symbol + ')';
-      } else if(item.symbol === 'XCP') {
-        text = 'Counterparty 암호화폐' + ' ' + '(' + item.symbol + ')';
-      } else if(item.symbol === 'BRX') {
-        text = 'Breakout Stake 암호화폐' + ' ' + '(' + item.symbol + ')';
-      } else if(item.symbol === 'HUX') {
-        text = 'high X 암호화폐' + ' ' + '(' + item.symbol + ')';
-      }
-      else if(item.kr === undefined) {
-        text = '(' + item.symbol + ')' + ' ' + '-정보가 없습니다.';
-      } else {
-        text = item.kr + ' ' + '(' + item.symbol + ')';
-      }
-      return { value, text };
-    });
-
-    options.sort((a, b) => a.text.localeCompare(b.text, 'ko-KR', { sensitivity: 'base' }));
-
-    // fromCurrency와 toCurrency 옵션 설정
-    options.forEach(option => {
-      const optionElement = document.createElement('option');
-      optionElement.value = option.value;
-      optionElement.text = option.text;
-      if (option.value === 'USD') {
-        optionElement.selected = true;
-      }
-      fromCurrencySelect.appendChild(optionElement);
-    });
-
-    options.forEach(option => {
-      const optionElement = document.createElement('option');
-      optionElement.value = option.value;
-      optionElement.text = option.text;
-      if (option.value === 'KRW') {
-        optionElement.selected = true;
-      }
-      toCurrencySelect.appendChild(optionElement);
-    });
-
-    // 환율 정보를 업데이트하는 함수
-    const updateExchangeRate = () => {
-      const fromCurrency = fromCurrencySelect.value;
-      const toCurrency = toCurrencySelect.value;
-      const amount = parseFloat(amountInput.value);
-
-      if (isNaN(amount)) {
-        resultText.innerText = '올바른 값을 입력하십시오.';
-        return;
-      }
-
-      const url = `https://api.manana.kr/exchange/rate.json?base=${toCurrency}&code=${fromCurrency}`;
-
-      fetch(url)
-        .then(response => response.json())
-        .then(data => {
-          const exchangeRate = data[0].rate;
-          const convertedAmount = (amount * exchangeRate).toFixed(2);
-
-          const convertedAmountWithoutComma = parseFloat(convertedAmount.replace(/,/g, ''));
-          const formattedValueWithUnit = displayDeposit(convertedAmountWithoutComma);
-
-          resultText.innerText = `${amount} ${fromCurrency} = ${formattedValueWithUnit} ${toCurrency}`;
-        })
-        .catch(error => {
-          console.error('Error fetching exchange rate:', error);
-          resultText.innerText = 'API를 가져오는 과정에서 에러가 발생했습니다. 다시 시도해주십시오.';
-        });
-    };
-
-    // Convert 버튼 클릭 시 환율 계산 실행
-    const convertButton = document.getElementById('convertButton');
-    convertButton.addEventListener('click', updateExchangeRate);
-
-    // Amount 입력창에서 Enter 키 입력 시 환율 계산 실행
+    // 버튼 클릭 & Enter 키 이벤트 등록
+    document.getElementById('convertButton').addEventListener('click', updateExchangeRate);
     amountInput.addEventListener('keypress', event => {
       if (event.key === 'Enter') {
         event.preventDefault();
         updateExchangeRate();
       }
     });
-
-    // 페이지 로딩 시 초기 환율 계산 실행
-    updateExchangeRate();
   })
   .catch(error => console.error(error));
-
-
-const isKorean = navigator.language === 'ko-KR';
-if (isKorean) {
-  document
-    .getElementById("lang-select")
-    .options[1].setAttribute("selected", true);
-}
-i18next.init(
-  {
-    lng: isKorean ? "ko" : "en",
-    debug: true,
-    resources: {
-      ko: {
-        translation: {
-          header: "환율 앱",
-          fromCurrency: "원래 단위(화폐):",
-          ToCurrency: "바꾼 단위(화폐):",
-          amount: "가격(양):",
-          button: "변환하기",
-          reference: `이 사이트에서 제공하는 환율 정보는 <a href="https://api.manana.kr/exchange.json" target="_blank">https://api.manana.kr/exchange.json</a>에서 받아온 데이터를 기초로 합니다.`
-        }
-      },
-      en: {
-        translation: {
-          header: "Exchange Rate App",
-          fromCurrency: "From Currency:",
-          ToCurrency: "To Currency:",
-          amount: "Amount:",
-          button: "Convert",
-          reference: `The exchange rate information provided by this site is based on data received from <a href="https://api.manana.kr/exchange.json" target="_blank">https://api.manana.kr/exchange.json</a> .`
-        }
-      }
-    }
-  }
-)
-
-function updateContent() {
-  document.getElementsByTagName("h1")[0].innerHTML = i18next.t("header");
-  document.querySelector('label[for="fromCurrency"]').innerHTML = i18next.t("fromCurrency");
-  document.querySelector('label[for="toCurrency"]').innerHTML = i18next.t("ToCurrency");
-  document.querySelector('label[for="amount"]').innerHTML = i18next.t("amount")
-  document.getElementById('convertButton').innerHTML = i18next.t("button")
-  document.getElementsByTagName("p")[1].innerHTML = i18next.t("reference")
-}
-
-i18next.on("languageChanged", () => {
-  updateContent();
-});
