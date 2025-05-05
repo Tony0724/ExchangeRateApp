@@ -111,7 +111,7 @@ fetch('https://api.manana.kr/exchange.json')
       const amount = parseFloat(amountInput.value);
 
       if (isNaN(amount)) {
-        resultText.innerText = 'Please enter a valid amount';
+        resultText.innerText = '올바른 값을 입력하십시오.';
         return;
       }
 
@@ -130,7 +130,7 @@ fetch('https://api.manana.kr/exchange.json')
         })
         .catch(error => {
           console.error('Error fetching exchange rate:', error);
-          resultText.innerText = 'Error fetching exchange rate. Please try again later.';
+          resultText.innerText = 'API를 가져오는 과정에서 에러가 발생했습니다. 다시 시도해주십시오.';
         });
     };
 
@@ -150,3 +150,52 @@ fetch('https://api.manana.kr/exchange.json')
     updateExchangeRate();
   })
   .catch(error => console.error(error));
+
+
+const isKorean = navigator.language === 'ko-KR';
+if (isKorean) {
+  document
+    .getElementById("lang-select")
+    .options[1].setAttribute("selected", true);
+}
+i18next.init(
+  {
+    lng: isKorean ? "ko" : "en",
+    debug: true,
+    resources: {
+      ko: {
+        translation: {
+          header: "환율 앱",
+          fromCurrency: "원래 단위(화폐):",
+          ToCurrency: "바꾼 단위(화폐):",
+          amount: "가격(양):",
+          button: "변환하기",
+          reference: `이 사이트에서 제공하는 환율 정보는 <a href="https://api.manana.kr/exchange.json" target="_blank">https://api.manana.kr/exchange.json</a>에서 받아온 데이터를 기초로 합니다.`
+        }
+      },
+      en: {
+        translation: {
+          header: "Exchange Rate App",
+          fromCurrency: "From Currency:",
+          ToCurrency: "To Currency:",
+          amount: "Amount:",
+          button: "Convert",
+          reference: `The exchange rate information provided by this site is based on data received from <a href="https://api.manana.kr/exchange.json" target="_blank">https://api.manana.kr/exchange.json</a> .`
+        }
+      }
+    }
+  }
+)
+
+function updateContent() {
+  document.getElementsByTagName("h1")[0].innerHTML = i18next.t("header");
+  document.querySelector('label[for="fromCurrency"]').innerHTML = i18next.t("fromCurrency");
+  document.querySelector('label[for="toCurrency"]').innerHTML = i18next.t("ToCurrency");
+  document.querySelector('label[for="amount"]').innerHTML = i18next.t("amount")
+  document.getElementById('convertButton').innerHTML = i18next.t("button")
+  document.getElementsByTagName("p")[1].innerHTML = i18next.t("reference")
+}
+
+i18next.on("languageChanged", () => {
+  updateContent();
+});

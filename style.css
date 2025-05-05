@@ -74,3 +74,11 @@ label {
   margin-left: 50px;
   margin-right: 50px;
 }
+
+#lang-select {
+  margin-bottom: 10px;
+  border-radius: 20px;
+  padding: 10px;
+  text-align: left;
+  text-align-last: left;
+}
