@@ -12,8 +12,12 @@ Thank you for reading.
 
 1. ~~Set USD(U.S.A.) to KRW(South Korea) default~~ **(done)**
 
-2. Offer multiple languages ***(70% done)***
+2. <u>Offer multiple languages</u> ***(70% done)***
 
    We will make another languages and improve our translate system.
+
+   **++ We already fixed the problem which moving to another language, there was a initial settings.(USD -> KRW).**
+
+     **However, we fixed the problem and now you can change the language and currency options together!!**
 
 3. ...(later)

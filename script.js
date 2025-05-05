@@ -72,8 +72,11 @@ const displayDeposit = (target) => {
 
 // 통화 데이터 저장 변수
 let currencyData = [];
+let isFirstRender = true;
+let previousFromValue;
+let previousToValue;
 
-// 옵션 생성 로직 분리
+// 옵션 생성 로직
 function createOptions(data, lang) {
   const isKorean = lang === "ko";
   return data.map(item => {
@@ -94,7 +97,10 @@ function createOptions(data, lang) {
       SIT: '슬로베니아 톨라르|Slovenian Tolar',
       XCP: 'Counterparty(암호화폐|cryptocurrency)',
       BRX: 'Breakout Stake(암호화폐|cryptocurrency)',
-      HUX: 'high X(암호화폐|cryptocurrency)'
+      HUX: 'high X(암호화폐|cryptocurrency)',
+      CNY: '중화인민공화국 위안|Renminbi (Chinese) yuan',
+      STD: '상투메 프린시페 도브라|Sao Tome Principe Dobra',
+      PHP: '필리핀 페소|Philippine peso'
     };
 
     let text;
@@ -120,21 +126,39 @@ function renderCurrencyOptions(lang) {
     const fromOpt = document.createElement('option');
     fromOpt.value = option.value;
     fromOpt.text = option.text;
-    if (option.value === 'USD') fromOpt.selected = true;
-    fromCurrencySelect.appendChild(fromOpt);
 
     const toOpt = document.createElement('option');
     toOpt.value = option.value;
     toOpt.text = option.text;
-    if (option.value === 'KRW') toOpt.selected = true;
+
+    // 첫 렌더링일 때는 USD -> KRW 설정
+    if (isFirstRender && option.value === "USD") {
+      fromOpt.selected = true;
+    }
+    if (isFirstRender && option.value === "KRW") {
+      toOpt.selected = true;
+    }
+
+    fromCurrencySelect.appendChild(fromOpt);
     toCurrencySelect.appendChild(toOpt);
   });
+
+  // 이후부터는 이전 선택 값 유지
+  if (!isFirstRender) {
+    fromCurrencySelect.value = previousFromValue || fromCurrencySelect.value;
+    toCurrencySelect.value = previousToValue || toCurrencySelect.value;
+  }
+
+  isFirstRender = false;
 }
 
-// 언어 변경 시 텍스트와 옵션 갱신
+// 언어 변경 시 처리
 i18next.on("languageChanged", (lng) => {
+  previousFromValue = fromCurrencySelect.value;
+  previousToValue = toCurrencySelect.value;
   updateContent();
   renderCurrencyOptions(lng);
+  updateExchangeRate();
 });
 
 // 환율 계산
@@ -164,7 +188,7 @@ function updateExchangeRate() {
     });
 }
 
-// fetch로 환율 데이터 불러오기
+// 환율 데이터 불러오기
 fetch('https://api.manana.kr/exchange.json')
   .then(response => response.json())
   .then(data => {
@@ -172,7 +196,6 @@ fetch('https://api.manana.kr/exchange.json')
     renderCurrencyOptions(i18next.language);
     updateExchangeRate();
 
-    // 버튼 클릭 & Enter 키 이벤트 등록
     document.getElementById('convertButton').addEventListener('click', updateExchangeRate);
     amountInput.addEventListener('keypress', event => {
       if (event.key === 'Enter') {
