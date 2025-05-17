@@ -20,4 +20,4 @@ Thank you for reading.
 
      **However, we fixed the problem and now you can change the language and currency options together!!**
 
-3. **!! API will be changed to another one. Because this api stops working. !!**
+3. ...
