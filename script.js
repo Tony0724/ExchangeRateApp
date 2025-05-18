@@ -21,7 +21,8 @@ i18next.init({
         ToCurrency: "바꾼 단위(화폐):",
         amount: "가격(양):",
         button: "변환하기",
-        reference: `이 사이트에서 제공하는 환율 정보는 <a href="https://api.manana.kr/exchange.json" target="_blank">https://api.manana.kr/exchange.json</a>에서 받아온 데이터를 기초로 합니다.`
+        reference: `이 사이트에서 제공하는 환율 정보는 <a href="https://api.manana.kr/exchange.json" target="_blank">https://api.manana.kr/exchange.json</a>에서 받아온 데이터를 기초로 합니다.`,
+        date: "(기준일: "
       }
     },
     en: {
@@ -31,7 +32,8 @@ i18next.init({
         ToCurrency: "To Currency:",
         amount: "Amount:",
         button: "Convert",
-        reference: `The exchange rate information provided by this site is based on data received from <a href="https://api.manana.kr/exchange.json" target="_blank">https://api.manana.kr/exchange.json</a>.`
+        reference: `The exchange rate information provided by this site is based on data received from <a href="https://api.manana.kr/exchange.json" target="_blank">https://api.manana.kr/exchange.json</a>.`,
+        date: "(Date: "
       }
     }
   }
@@ -173,14 +175,13 @@ function updateExchangeRate() {
   }
 
   const url = `https://api.manana.kr/exchange/rate.json?base=${toCurrency}&code=${fromCurrency}`;
-
   fetch(url)
     .then(response => response.json())
     .then(data => {
       const exchangeRate = data[0].rate;
       const convertedAmount = (amount * exchangeRate).toFixed(2);
       const formatted = displayDeposit(parseFloat(convertedAmount.replace(/,/g, '')));
-      const Ddate = '(Date: ' + data[0].date.replace(/20(\d{2}-\d{2}-\d{2} \d{2}:\d{2}):\d{2}/, '$1') + ')'
+      const Ddate = i18next.t("date") + data[0].date.replace(/20(\d{2}-\d{2}-\d{2} \d{2}:\d{2}):\d{2}/, '$1') + ')'
       resultText.innerText = `${amount} ${fromCurrency} = ${formatted} ${toCurrency} ${Ddate}`;
     })
     .catch(error => {
