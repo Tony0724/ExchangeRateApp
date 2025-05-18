@@ -181,8 +181,8 @@ function updateExchangeRate() {
       const exchangeRate = data[0].rate;
       const convertedAmount = (amount * exchangeRate).toFixed(2);
       const formatted = displayDeposit(parseFloat(convertedAmount.replace(/,/g, '')));
-      const Ddate = i18next.t("date") + data[0].date.replace(/20(\d{2}-\d{2}-\d{2} \d{2}:\d{2}):\d{2}/, '$1') + ')'
-      resultText.innerText = `${amount} ${fromCurrency} = ${formatted} ${toCurrency} ${Ddate}`;
+      const Ddate = i18next.t("date")
+      resultText.innerText = `${amount} ${fromCurrency} = ${formatted} ${toCurrency} ${Ddate + data[0].date.replace(/20(\d{2}-\d{2}-\d{2} \d{2}:\d{2}):\d{2}/, '$1') + ')'}`;
     })
     .catch(error => {
       console.error('Error fetching exchange rate:', error);
