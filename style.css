@@ -2,7 +2,7 @@ body {
   margin: 0;
   margin-top: 20px;
   padding: 0;
-  background-color: skyblue;
+  background-color: rgb(243, 243, 243);
 }
 
 .container {
@@ -12,9 +12,26 @@ body {
   justify-content: center;
 }
 
+.light {
+  display: flex;
+  flex-direction: column;
+  align-items: end;
+  padding-right: 1rem;
+}
+
+#toggle-theme {
+  background-color: rgb(243, 243, 243);
+  border:none;
+  padding: 5px;
+  color: white;
+  font-size: 20px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
 .header {
   font-size: 36px;
-  color: #FFFFFF;
+  color: #2d2c2c;
   font-weight: bold;
   margin-top: 70px;
   margin-bottom: 50px;
@@ -81,4 +98,59 @@ label {
   padding: 10px;
   text-align: left;
   text-align-last: left;
+}
+
+/* 다크 모드 스타일 */
+body.dark {
+  background-color: #1e1e1e;
+  color: #ffffff;
+}
+
+body.dark .header {
+  color: #ffffff
+}
+
+body.dark .container {
+  background-color: #1e1e1e;
+}
+
+body.dark #lang-select {
+  background-color: #c6c2d1;
+  color: rgb(19, 17, 17);
+  border: 1px solid #555;
+}
+
+body.dark .picker,
+body.dark .input {
+  background-color: #c6c2d1;
+  color: rgb(19, 17, 17);
+  border: 1px solid #555;
+}
+
+body.dark .button {
+  background-color: #ebdcdc;
+  color: rgb(19, 17, 17);
+}
+
+body.dark .button:hover {
+  background-color: #333388;
+  color: #c6c2d1;
+}
+
+body.dark .light {
+  background-color: #1e1e1e;
+}
+
+body.dark #toggle-theme {
+  background-color: #1e1e1e;
+  border:none;
+  padding: 5px;
+  color: white;
+  font-size: 20px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+body.dark .reference {
+  color: #ffffff;
 }

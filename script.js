@@ -16,28 +16,42 @@ i18next.init({
   resources: {
     ko: {
       translation: {
-        header: "환율 앱",
+        header: "💱 환율 앱",
         fromCurrency: "원래 단위(화폐):",
         ToCurrency: "바꾼 단위(화폐):",
         amount: "가격(양):",
         button: "변환하기",
-        reference: `이 사이트에서 제공하는 환율 정보는 <a href="https://api.manana.kr/exchange.json" target="_blank">https://api.manana.kr/exchange.json</a>에서 받아온 데이터를 기초로 합니다.`,
+        reference: `이 사이트에서 제공하는 환율 정보는 <a href="https://api.manana.kr/exchange.json" target="_blank">💱</a>에서 받아온 데이터를 기초로 합니다.`,
         date: "(기준일: "
       }
     },
     en: {
       translation: {
-        header: "Exchange Rate App",
+        header: "💱 Exchange Rate App",
         fromCurrency: "From Currency:",
         ToCurrency: "To Currency:",
         amount: "Amount:",
         button: "Convert",
-        reference: `The exchange rate information provided by this site is based on data received from <a href="https://api.manana.kr/exchange.json" target="_blank">https://api.manana.kr/exchange.json</a>.`,
+        reference: `The exchange rate information provided by this site is based on data received from <a href="https://api.manana.kr/exchange.json" target="_blank">💱</a>.`,
         date: "(Date: "
       }
     }
   }
 });
+
+const toggleButton = document.getElementById("toggle-theme");
+  const body = document.body;
+
+  toggleButton.addEventListener("click", () => {
+    body.classList.toggle("dark");
+
+    // 텍스트도 다국어로 바뀌게 처리
+    if (body.classList.contains("dark")) {
+      toggleButton.innerText = "☀️";
+    } else {
+      toggleButton.innerText = "🌙";
+    }
+  });
 
 // 화면 내 텍스트 업데이트
 function updateContent() {
