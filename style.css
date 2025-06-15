@@ -2,7 +2,7 @@ body {
   margin: 0;
   margin-top: 20px;
   padding: 0;
-  background-color: rgb(243, 243, 243);
+  background-color: 	#e0f7fa;
 }
 
 .container {
@@ -20,7 +20,7 @@ body {
 }
 
 #toggle-theme {
-  background-color: rgb(243, 243, 243);
+  background-color: #e0f7fa;
   border:none;
   padding: 5px;
   color: white;
@@ -31,7 +31,7 @@ body {
 
 .header {
   font-size: 36px;
-  color: #2d2c2c;
+  color: #333333	;
   font-weight: bold;
   margin-top: 70px;
   margin-bottom: 50px;
@@ -47,7 +47,7 @@ label {
   width: 200px;
   height: 50px;
   margin-bottom: 10px;
-  background-color: white;
+  background-color: 	#f0f0f0;
   border-radius: 20px;
   text-align: center;
 }
@@ -58,7 +58,7 @@ label {
   width: 200px;
   margin-bottom: 10px;
   border-radius: 20px;
-  background-color: white;
+  background-color: 	#f0f0f0;
   text-align: center;
 }
 
@@ -71,8 +71,9 @@ label {
 
 .button {
   margin-top: 25px;
-  background-color: #007BFF;
-  border-radius: 8px;
+  background-color: #007BFF	;
+  border-radius:13px;
+  border-color: #007BFF;
   padding: 15px 25px;
   color: white;
   font-size: 20px;
@@ -83,10 +84,11 @@ label {
 
 .button:hover {
   background-color: #0056b3;
+  border-color: #0056b3;
 }
 
 .reference {
-  color: rgb(73, 73, 238);
+  color: #00695c;
   font-style: italic;
   margin-left: 50px;
   margin-right: 50px;
@@ -98,6 +100,7 @@ label {
   padding: 10px;
   text-align: left;
   text-align-last: left;
+  background-color: 	#f0f0f0;
 }
 
 /* 다크 모드 스타일 */
@@ -115,30 +118,36 @@ body.dark .container {
 }
 
 body.dark #lang-select {
-  background-color: #c6c2d1;
-  color: rgb(19, 17, 17);
-  border: 1px solid #555;
+  background-color: #2a2a2a;
+  color: #ffffff;
+  border: 1px solid #444;
 }
 
 body.dark .picker,
 body.dark .input {
-  background-color: #c6c2d1;
-  color: rgb(19, 17, 17);
-  border: 1px solid #555;
+  background-color: #2a2a2a;
+  color: #ffffff;
+  border: 1px solid #444;
 }
 
 body.dark .button {
-  background-color: #ebdcdc;
+  background-color: #3b82f6;
+  border-color: #3b82f6;
   color: rgb(19, 17, 17);
 }
 
 body.dark .button:hover {
-  background-color: #333388;
+  background-color: #2563eb;
   color: #c6c2d1;
+  border-color:  #2563eb;
 }
 
 body.dark .light {
   background-color: #1e1e1e;
+}
+
+body.dark #lang-select {
+  background-color: #2a2a2a;
 }
 
 body.dark #toggle-theme {
@@ -152,5 +161,5 @@ body.dark #toggle-theme {
 }
 
 body.dark .reference {
-  color: #ffffff;
+  color: #80cbc4;
 }

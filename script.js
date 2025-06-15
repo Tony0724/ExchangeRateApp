@@ -16,6 +16,7 @@ i18next.init({
   resources: {
     ko: {
       translation: {
+        title: "환율 앱",
         header: "💱 환율 앱",
         fromCurrency: "원래 단위(화폐):",
         ToCurrency: "바꾼 단위(화폐):",
@@ -27,7 +28,8 @@ i18next.init({
     },
     en: {
       translation: {
-        header: "💱 Exchange Rate App",
+        title: "Exchange App",
+        header: "💱 Exchange App",
         fromCurrency: "From Currency:",
         ToCurrency: "To Currency:",
         amount: "Amount:",
@@ -61,6 +63,7 @@ function updateContent() {
   document.querySelector('label[for="amount"]').innerHTML = i18next.t("amount");
   document.getElementById('convertButton').innerHTML = i18next.t("button");
   document.getElementsByTagName("p")[1].innerHTML = i18next.t("reference");
+  document.title = i18next.t("title")
 }
 
 // 숫자를 단위별로 나눔
