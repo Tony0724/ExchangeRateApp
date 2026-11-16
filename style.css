@@ -1,165 +1,514 @@
-body {
+/* ========================================
+   1. 기본 설정
+======================================== */
+
+* {
   margin: 0;
-  margin-top: 20px;
   padding: 0;
-  background-color: 	#e0f7fa;
+  box-sizing: border-box;
+  font-family: Arial, sans-serif;
 }
 
-.container {
+html {
+  width: 100%;
+  height: 100%;
+}
+
+body {
+  width: 100%;
+  height: 100vh;
+  height: 100svh;
+
+  background-color: #f5f5f5;
+
   display: flex;
-  flex-direction: column;
-  align-items: center;
   justify-content: center;
+  align-items: center;
+
+  padding: 12px;
+
+  overflow: hidden;
+
+  transition: background-color 0.2s ease;
 }
 
-.light {
-  display: flex;
-  flex-direction: column;
-  align-items: end;
-  padding-right: 1rem;
+
+/* ========================================
+   2. 전체 카드 박스
+======================================== */
+
+.borbox {
+  width: min(90vw, 440px);
+  max-height: calc(100svh - 24px);
+
+  background-color: white;
+
+  border-radius: clamp(12px, 4vw, 20px);
+
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+
+  overflow: hidden;
+
+  margin: 0;
+
+  transition:
+    background-color 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
-#toggle-theme {
-  background-color: #e0f7fa;
-  border:none;
-  padding: 5px;
-  color: white;
-  font-size: 20px;
-  font-weight: bold;
-  cursor: pointer;
-}
+
+/* ========================================
+   3. 헤더
+======================================== */
 
 .header {
-  font-size: 36px;
-  color: #333333	;
-  font-weight: bold;
-  margin-top: 70px;
-  margin-bottom: 50px;
-}
-
-label {
-  font-size: 18px;
-  font-weight: bold;
-  margin-bottom: 10px;
-}
-
-.picker {
-  width: 200px;
-  height: 50px;
-  margin-bottom: 10px;
-  background-color: 	#f0f0f0;
-  border-radius: 20px;
-  text-align: center;
-}
-
-.input {
-  border: 1px solid #000;
-  padding: 15px;
-  width: 200px;
-  margin-bottom: 10px;
-  border-radius: 20px;
-  background-color: 	#f0f0f0;
-  text-align: center;
-}
-
-.result {
-  margin-top: 20px;
-  font-size: 18px;
-  font-weight: bold;
-  border-radius: 10px;
-}
-
-.button {
-  margin-top: 25px;
-  background-color: #007BFF	;
-  border-radius:13px;
-  border-color: #007BFF;
-  padding: 15px 25px;
+  background-color: #1e293b;
   color: white;
-  font-size: 20px;
+
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  gap: 10px;
+
+  padding: clamp(16px, 4vh, 30px) clamp(14px, 4vw, 20px);
+}
+
+.header p {
+  font-size: clamp(15px, 4vw, 18px);
   font-weight: bold;
+
+  min-width: 0;
+}
+
+
+/* ========================================
+   4. 언어 선택창
+======================================== */
+
+.header select {
+  width: clamp(85px, 25vw, 110px);
+
+  padding: 7px 8px;
+
+  background-color: #334155;
+  color: white;
+
+  border: 1px solid #475569;
+  border-radius: 6px;
+
+  font-size: clamp(12px, 3vw, 14px);
+
   cursor: pointer;
+  outline: none;
+
+  flex-shrink: 0;
+}
+
+.header select option {
+  background-color: white;
+  color: #333;
+}
+
+.header select:hover {
+  background-color: #475569;
+}
+
+.header select:focus {
+  border-color: #93c5fd;
 }
 
 
-.button:hover {
-  background-color: #0056b3;
-  border-color: #0056b3;
+/* ========================================
+   5. 콘텐츠
+======================================== */
+
+.content {
+  padding: clamp(16px, 4vh, 25px);
+
 }
 
-.reference {
-  color: #00695c;
-  font-style: italic;
-  margin-left: 50px;
-  margin-right: 50px;
+
+/* ========================================
+   6. 라벨
+======================================== */
+
+.content label {
+  display: block;
+
+  margin-bottom: 7px;
+
+  font-size: clamp(12px, 3.5vw, 14px);
+  font-weight: bold;
+
+  color: #333;
 }
 
-#lang-select {
-  margin-bottom: 10px;
-  border-radius: 20px;
-  padding: 10px;
-  text-align: left;
-  text-align-last: left;
-  background-color: 	#f0f0f0;
+
+/* ========================================
+   7. 금액 입력창
+======================================== */
+
+.content input {
+  width: 100%;
+
+  padding: 11px 10px;
+
+  margin-bottom: clamp(12px, 3vh, 20px);
+
+  border: 1px solid #ccc;
+  border-radius: 8px;
+
+  font-size: 16px;
+
+  outline: none;
+
+  transition: border-color 0.2s;
 }
 
-/* 다크 모드 스타일 */
+.content input:focus {
+  border-color: #3b82f6;
+}
+
+
+/* ========================================
+   8. From / To 라벨
+======================================== */
+
+.label-row {
+  display: flex;
+
+  justify-content: space-between;
+
+  gap: 12px;
+
+  margin-bottom: 8px;
+}
+
+.label-row label {
+  flex: 1;
+  min-width: 0;
+
+  font-size: clamp(11px, 3vw, 14px);
+}
+
+
+/* ========================================
+   9. 통화 선택창
+======================================== */
+
+.select-row {
+  display: flex;
+
+  justify-content: space-between;
+
+  gap: 4%;
+
+  margin-bottom: clamp(12px, 3vh, 16px);
+}
+
+.select-row select {
+  width: 48%;
+  min-width: 0;
+
+  padding: 10px 5px;
+
+  border: 1px solid #ccc;
+  border-radius: 8px;
+
+  background-color: #f8fafc;
+  color: #333;
+
+  font-size: clamp(11px, 3vw, 14px);
+
+  cursor: pointer;
+  outline: none;
+}
+
+.select-row select:focus {
+  border-color: #3b82f6;
+}
+
+
+/* ========================================
+   10. 계산 버튼
+======================================== */
+
+#convert {
+  background-color: #3b82f6;
+  color: white;
+
+  border: none;
+  border-radius: 8px;
+
+  width: 100%;
+
+  padding: clamp(10px, 2.5vh, 13px);
+
+  margin: clamp(10px, 3vh, 15px) 0 clamp(12px, 3vh, 20px);
+
+  font-size: clamp(14px, 3.5vw, 16px);
+  font-weight: bold;
+
+  cursor: pointer;
+
+  transition:
+    background-color 0.2s ease,
+    transform 0.1s ease;
+}
+
+#convert:hover {
+  background-color: #2563eb;
+}
+
+#convert:active {
+  transform: scale(0.99);
+}
+
+
+/* ========================================
+   11. 결과 박스
+======================================== */
+
+.result-box {
+  background-color: #f0f0f0;
+
+  padding: clamp(10px, 3vw, 15px);
+
+  border: 1px solid #ddd;
+  border-radius: 10px;
+
+  text-align: center;
+
+  color: #333;
+  font-weight: 500;
+
+  box-shadow: inset 0 0 3px rgba(0, 0, 0, 0.1);
+
+  overflow-wrap: anywhere;
+
+  line-height: 1.6;
+}
+
+.result-box p {
+  font-size: clamp(12px, 3.3vw, 15px);
+}
+
+
+/* ========================================
+   12. 작은 스마트폰
+======================================== */
+
+@media (max-width: 360px) {
+
+  .borbox {
+    width: 92vw;
+  }
+
+  .header {
+    padding: 14px 12px;
+  }
+
+  .header p {
+    font-size: 14px;
+  }
+
+  .header select {
+    width: 85px;
+    padding: 6px;
+  }
+
+  .content {
+    padding: 15px;
+  }
+
+  .label-row {
+    gap: 6px;
+  }
+
+  .label-row label {
+    font-size: 11px;
+  }
+
+  .select-row select {
+    font-size: 11px;
+    padding: 9px 3px;
+  }
+
+  .result-box p {
+    font-size: 12px;
+  }
+}
+
+
+/* ========================================
+   13. 화면 높이가 낮은 경우
+======================================== */
+
+@media (max-height: 650px) {
+
+  .header {
+    padding-top: 12px;
+    padding-bottom: 12px;
+  }
+
+  .content {
+    padding-top: 14px;
+    padding-bottom: 14px;
+  }
+
+  .content input {
+    margin-bottom: 10px;
+    padding: 8px;
+  }
+
+  .select-row {
+    margin-bottom: 8px;
+  }
+
+  #convert {
+    margin-top: 7px;
+    margin-bottom: 10px;
+    padding: 9px;
+  }
+
+  .result-box {
+    padding: 9px;
+  }
+
+}
+
+
+/* ========================================
+   14. 매우 낮은 화면
+======================================== */
+
+@media (max-height: 500px) {
+
+  .header {
+    padding-top: 8px;
+    padding-bottom: 8px;
+  }
+
+  .content {
+    padding-top: 9px;
+    padding-bottom: 9px;
+  }
+
+  .content label {
+    margin-bottom: 4px;
+  }
+
+  .content input {
+    margin-bottom: 7px;
+    padding: 6px;
+  }
+
+  .select-row {
+    margin-bottom: 5px;
+  }
+
+  #convert {
+    margin-top: 5px;
+    margin-bottom: 7px;
+    padding: 7px;
+  }
+
+  .result-box {
+    padding: 6px;
+  }
+
+}
+
+
+/* ========================================
+   15. 다크 모드
+======================================== */
+
 body.dark {
   background-color: #1e1e1e;
-  color: #ffffff;
 }
+
+
+/* 카드 */
+
+body.dark .borbox {
+  background-color: #252525;
+
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+}
+
+
+/* 헤더 */
 
 body.dark .header {
-  color: #ffffff
-}
-
-body.dark .container {
-  background-color: #1e1e1e;
-}
-
-body.dark #lang-select {
-  background-color: #2a2a2a;
-  color: #ffffff;
-  border: 1px solid #444;
-}
-
-body.dark .picker,
-body.dark .input {
-  background-color: #2a2a2a;
-  color: #ffffff;
-  border: 1px solid #444;
-}
-
-body.dark .button {
-  background-color: #3b82f6;
-  border-color: #3b82f6;
-  color: rgb(19, 17, 17);
-}
-
-body.dark .button:hover {
-  background-color: #2563eb;
-  color: #c6c2d1;
-  border-color:  #2563eb;
-}
-
-body.dark .light {
-  background-color: #1e1e1e;
-}
-
-body.dark #lang-select {
-  background-color: #2a2a2a;
-}
-
-body.dark #toggle-theme {
-  background-color: #1e1e1e;
-  border:none;
-  padding: 5px;
+  background-color: #111827;
   color: white;
-  font-size: 20px;
-  font-weight: bold;
-  cursor: pointer;
 }
 
-body.dark .reference {
-  color: #80cbc4;
+
+/* 언어 선택창 */
+
+body.dark .header select {
+  background-color: #2a2a2a;
+  color: white;
+  border-color: #444;
+}
+
+body.dark .header select option {
+  background-color: #2a2a2a;
+  color: white;
+}
+
+
+/* 라벨 */
+
+body.dark .content label {
+  color: #eee;
+}
+
+
+/* 입력창 */
+
+body.dark .content input {
+  background-color: #2a2a2a;
+  color: white;
+  border: 1px solid #444;
+}
+
+body.dark .content input::placeholder {
+  color: #aaa;
+}
+
+
+/* 통화 선택창 */
+
+body.dark .select-row select {
+  background-color: #2a2a2a;
+  color: white;
+  border: 1px solid #444;
+}
+
+
+/* 계산 버튼 */
+
+body.dark #convert {
+  background-color: #3b82f6;
+  color: white;
+}
+
+body.dark #convert:hover {
+  background-color: #2563eb;
+}
+
+
+/* 결과 박스 */
+
+body.dark .result-box {
+  background-color: #2a2a2a;
+  color: white;
+
+  border: 1px solid #444;
+
+  box-shadow: none;
 }

@@ -1,226 +1,666 @@
-// HTML 요소를 가져옵니다.
-const fromCurrencySelect = document.getElementById('fromCurrency');
-const toCurrencySelect = document.getElementById('toCurrency');
-const amountInput = document.getElementById('amount');
-const resultText = document.getElementById('result');
+// ========================================
+// 1. HTML 요소 가져오기
+// ========================================
 
-const isKorean = navigator.language === 'ko-KR';
-if (isKorean) {
-  document.getElementById("lang-select").options[1].setAttribute("selected", true);
+const fromCurrencySelect = document.getElementById("from-currency");
+const toCurrencySelect = document.getElementById("to-currency");
+
+const amountInput = document.getElementById("amount");
+const resultText = document.getElementById("result");
+
+const convertButton = document.getElementById("convert");
+const langSelect = document.getElementById("lang-select");
+
+
+// ========================================
+// 2. 기본 설정
+// ========================================
+
+// 브라우저 언어에 따라 기본 언어 설정
+let currentLanguage = navigator.language.toLowerCase().startsWith("ko")
+  ? "ko"
+  : "en";
+
+// 통화 데이터
+let currencyData = [];
+
+// 최초 통화 선택창 렌더링 여부
+let isFirstRender = true;
+
+// 환율 요청 번호
+let requestId = 0;
+
+
+// ========================================
+// 3. 다국어 번역 데이터
+// ========================================
+
+const translations = {
+  ko: {
+    title: "환율 계산기",
+    header: "💱 환율 계산기",
+
+    amount: "가격",
+    fromCurrency: "원래 단위(화폐)",
+    toCurrency: "바꿀 단위(화폐)",
+
+    button: "계산하기",
+
+    result: "환율 계산 결과:",
+
+    placeholder: "금액을 입력해 주세요.",
+
+    invalid: "올바른 금액을 입력해 주세요.",
+
+    loading: "환율을 불러오는 중입니다.",
+
+    error: "환율 정보를 가져오는 과정에서 오류가 발생했습니다. 다시 시도해 주세요.",
+
+    date: "기준일"
+  },
+
+  en: {
+    title: "Exchange Rate Calculator",
+    header: "💱 Exchange Rate Calculator",
+
+    amount: "Amount",
+    fromCurrency: "From",
+    toCurrency: "To",
+
+    button: "Convert",
+
+    result: "Conversion result:",
+
+    placeholder: "Please enter an amount.",
+
+    invalid: "Please enter a valid amount.",
+
+    loading: "Loading exchange rate...",
+
+    error: "An error occurred while retrieving exchange rate. Please try again.",
+
+    date: "Date"
+  }
+};
+
+
+// 현재 언어의 번역 가져오기
+function t(key) {
+  return translations[currentLanguage][key];
 }
 
-// i18n 초기화
-i18next.init({
-  lng: isKorean ? "ko" : "en",
-  debug: true,
-  resources: {
-    ko: {
-      translation: {
-        title: "환율 앱",
-        header: "💱 환율 앱",
-        fromCurrency: "원래 단위(화폐):",
-        ToCurrency: "바꾼 단위(화폐):",
-        amount: "가격(양):",
-        button: "변환하기",
-        reference: `이 사이트에서 제공하는 환율 정보는 <a href="https://api.manana.kr/exchange.json" target="_blank">💱</a>에서 받아온 데이터를 기초로 합니다.`,
-        date: "(기준일: "
-      }
-    },
-    en: {
-      translation: {
-        title: "Exchange App",
-        header: "💱 Exchange App",
-        fromCurrency: "From Currency:",
-        ToCurrency: "To Currency:",
-        amount: "Amount:",
-        button: "Convert",
-        reference: `The exchange rate information provided by this site is based on data received from <a href="https://api.manana.kr/exchange.json" target="_blank">💱</a>.`,
-        date: "(Date: "
-      }
-    }
+
+// ========================================
+// 4. 화면의 언어 변경
+// ========================================
+
+function updateContent() {
+
+  // HTML 언어 변경
+  document.documentElement.lang = currentLanguage;
+
+  // 페이지 제목 변경
+  document.title = t("title");
+
+  // 제목 변경
+  document.querySelector(".header p").textContent = t("header");
+
+  // 입력창 설명 변경
+  document.querySelector('label[for="amount"]').textContent =
+    t("amount");
+
+  // 통화 선택 설명 변경
+  document.querySelector('label[for="from-currency"]').textContent =
+    t("fromCurrency");
+
+  document.querySelector('label[for="to-currency"]').textContent =
+    t("toCurrency");
+
+  // 입력창 안내 문구 변경
+  amountInput.placeholder = t("placeholder");
+
+  // 계산 버튼 변경
+  convertButton.textContent = t("button");
+
+  // 현재 언어를 선택창에 표시
+  langSelect.value = currentLanguage;
+
+  // 결과 영역 변경
+  resultText.textContent = t("result");
+}
+
+
+// ========================================
+// 5. 언어 선택창 이벤트
+// ========================================
+
+langSelect.addEventListener("change", () => {
+
+  // 선택한 언어 가져오기
+  currentLanguage = langSelect.value;
+
+  // 화면의 언어 변경
+  updateContent();
+
+  // 통화 데이터가 준비된 경우
+  if (currencyData.length > 0) {
+
+    // 통화 선택창의 언어 변경
+    renderCurrencyOptions();
+
+    // 환율 다시 계산
+    updateExchangeRate();
   }
 });
 
-const toggleButton = document.getElementById("toggle-theme");
-  const body = document.body;
 
-  toggleButton.addEventListener("click", () => {
-    body.classList.toggle("dark");
+// ========================================
+// 6. 숫자를 만, 억, 조, 경 단위로 표시
+// ========================================
 
-    // 텍스트도 다국어로 바뀌게 처리
-    if (body.classList.contains("dark")) {
-      toggleButton.innerText = "☀️";
-    } else {
-      toggleButton.innerText = "🌙";
+function displayDeposit(target) {
+
+  const unitWords = ["", "만", "억", "조", "경", "해"];
+
+  const integerPart = Math.floor(target);
+
+  const decimalPart = (target - integerPart).toFixed(2).slice(1);
+
+  let remaining = integerPart;
+
+  let resultArray = [];
+
+  // 큰 단위부터 계산
+  for (let i = unitWords.length - 1; i >= 0; i--) {
+
+    const unitValue = Math.floor(
+      remaining / Math.pow(10000, i)
+    );
+
+    if (unitValue > 0) {
+
+      resultArray.push(
+        unitValue.toLocaleString("ko-KR") + unitWords[i]
+      );
+
+      remaining %= Math.pow(10000, i);
     }
-  });
+  }
 
-// 화면 내 텍스트 업데이트
-function updateContent() {
-  document.getElementsByTagName("h1")[0].innerHTML = i18next.t("header");
-  document.querySelector('label[for="fromCurrency"]').innerHTML = i18next.t("fromCurrency");
-  document.querySelector('label[for="toCurrency"]').innerHTML = i18next.t("ToCurrency");
-  document.querySelector('label[for="amount"]').innerHTML = i18next.t("amount");
-  document.getElementById('convertButton').innerHTML = i18next.t("button");
-  document.getElementsByTagName("p")[1].innerHTML = i18next.t("reference");
-  document.title = i18next.t("title")
+  // 나머지 숫자 표시
+  if (remaining > 0) {
+    resultArray.push(
+      remaining.toLocaleString("ko-KR")
+    );
+  }
+
+  return resultArray.join(" ") + decimalPart;
 }
 
-// 숫자를 단위별로 나눔
-const displayDeposit = (target) => {
-  const unitWords = ['', '만', '억', '조', '경'];
-  const splitUnit = 10000;
-  const splitCount = unitWords.length;
-  const resultArray = [];
-  let resultString = '';
 
-  for (let i = 0; i < splitCount; i++) {
-    const unitResult = Math.floor((target % Math.pow(splitUnit, i + 1)) / Math.pow(splitUnit, i));
-    if (unitResult > 0) {
-      resultArray[i] = unitResult;
-    }
+// ========================================
+// 7. 숫자 표시 형식
+// ========================================
+
+function formatAmount(number) {
+
+  // 한국어 모드에서 1만 이상이면 단위 표시
+  if (currentLanguage === "ko" && number >= 10000) {
+
+    return displayDeposit(number);
+
   }
 
-  for (let i = 0; i < resultArray.length; i++) {
-    if (!resultArray[i]) continue;
-    resultString = resultArray[i] + unitWords[i] + resultString;
-  }
+  const locale = currentLanguage === "ko"
+    ? "ko-KR"
+    : "en-US";
 
-  return resultString;
+  return new Intl.NumberFormat(locale, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  }).format(number);
+}
+
+
+// ========================================
+// 8. 특수 통화 이름
+// ========================================
+
+const specialCases = {
+
+  CNH: {
+    ko: "중화인민공화국 국외용 위안(CNY와 같음.)",
+    en: "China Overseas Yuan"
+  },
+
+  CYP: {
+    ko: "키프로스 파운드",
+    en: "Cypriot pound"
+  },
+
+  DEM: {
+    ko: "독일 마르크",
+    en: "German mark"
+  },
+
+  ECS: {
+    ko: "eSync Network(암호화폐)",
+    en: "eSync Network (cryptocurrency)"
+  },
+
+  FRF: {
+    ko: "프랑스 프랑",
+    en: "French franc"
+  },
+
+  IEP: {
+    ko: "아일랜드 파운드",
+    en: "Irish pound"
+  },
+
+  ITL: {
+    ko: "이탈리아 리라",
+    en: "Italian lira"
+  },
+
+  LTL: {
+    ko: "리투아니아 리타",
+    en: "Lithuania Rita"
+  },
+
+  LVL: {
+    ko: "라트비아 라트",
+    en: "Latvian Lat"
+  },
+
+  MGA: {
+    ko: "마다가스카르 아리아리",
+    en: "Madagascar Ariari"
+  },
+
+  MRO: {
+    ko: "모리타니 우기야",
+    en: "Mauritania Ugiya"
+  },
+
+  SIT: {
+    ko: "슬로베니아 톨라르",
+    en: "Slovenian Tolar"
+  },
+
+  XCP: {
+    ko: "Counterparty(암호화폐)",
+    en: "Counterparty (cryptocurrency)"
+  },
+
+  BRX: {
+    ko: "Breakout Stake(암호화폐)",
+    en: "Breakout Stake (cryptocurrency)"
+  },
+
+  HUX: {
+    ko: "high X(암호화폐)",
+    en: "high X (cryptocurrency)"
+  },
+
+  CNY: {
+    ko: "중화인민공화국 위안",
+    en: "Renminbi (Chinese) yuan"
+  },
+
+  STD: {
+    ko: "상투메 프린시페 도브라",
+    en: "Sao Tome Principe Dobra"
+  },
+
+  PHP: {
+    ko: "필리핀 페소",
+    en: "Philippine peso"
+  }
 };
 
-// 통화 데이터 저장 변수
-let currencyData = [];
-let isFirstRender = true;
-let previousFromValue;
-let previousToValue;
 
-// 옵션 생성 로직
-function createOptions(data, lang) {
-  const isKorean = lang === "ko";
+// ========================================
+// 9. 통화 옵션 생성
+// ========================================
+
+function createOptions(data) {
+
   return data.map(item => {
-    const symbol = item.symbol.replace('=X', '');
-    const value = symbol.replace('USD/', '');
-    const specialCases = {
-      CNH: '중화인민공화국 국외용 위안(CNY와 같음.)|China Overseas Yuan',
-      CYP: '키프로스 파운드|Cypriot pound',
-      DEM: '독일 마르크|German mark',
-      ECS: 'eSync Network(암호화폐|cryptocurrency)',
-      FRF: '프랑스 프랑|French franc',
-      IEP: '아일랜드 파운드|Irish pound',
-      ITL: '이탈리아 리라|Italian lira',
-      LTL: '리투아니아 리타|Lithuania Rita',
-      LVL: '라트비아 라트|Latvian Lat',
-      MGA: '마다가스카르 아리아리|Madagascar Ariari',
-      MRO: '모리타니 우기야|Mauritania Ugiya',
-      SIT: '슬로베니아 톨라르|Slovenian Tolar',
-      XCP: 'Counterparty(암호화폐|cryptocurrency)',
-      BRX: 'Breakout Stake(암호화폐|cryptocurrency)',
-      HUX: 'high X(암호화폐|cryptocurrency)',
-      CNY: '중화인민공화국 위안|Renminbi (Chinese) yuan',
-      STD: '상투메 프린시페 도브라|Sao Tome Principe Dobra',
-      PHP: '필리핀 페소|Philippine peso'
-    };
 
-    let text;
-    if (specialCases[symbol]) {
-      text = specialCases[symbol] + ` (${symbol})`;
+    // 통화 코드 추출
+    const symbol = String(item.symbol || "").replace("=X", "");
+
+    const value = symbol.includes("/")
+      ? symbol.split("/").pop()
+      : symbol;
+
+    // 특수 통화 여부 확인
+    const specialCase = specialCases[value];
+
+    let name;
+
+    if (specialCase) {
+
+      name = specialCase[currentLanguage];
+
     } else {
-      text = isKorean ? `${item.kr} (${symbol})` : `${item.en} (${symbol})`;
+
+      name = currentLanguage === "ko"
+        ? item.kr
+        : item.en;
+
     }
 
-    return { value, text };
-  });
+    return {
+      value: value,
+      text: `${name || value} (${value})`
+    };
+
+  }).filter(option => option.value);
 }
 
-// select 옵션 렌더링
-function renderCurrencyOptions(lang) {
-  const options = createOptions(currencyData, lang);
+
+// ========================================
+// 10. 통화 선택창 렌더링
+// ========================================
+
+function renderCurrencyOptions() {
+
+  // 기존에 선택한 통화 기억
+  const previousFromValue = fromCurrencySelect.value;
+  const previousToValue = toCurrencySelect.value;
+
+  // 통화 옵션 생성
+  const options = createOptions(currencyData);
+
+  // 중복 통화 제거
+  const uniqueOptions = [
+    ...new Map(
+      options.map(option => [option.value, option])
+    ).values()
+  ];
+
+  // USD가 목록에 없으면 추가
+  if (!uniqueOptions.some(option => option.value === "USD")) {
+
+    uniqueOptions.push({
+      value: "USD",
+
+      text: currentLanguage === "ko"
+        ? "미국 달러 (USD)"
+        : "US Dollar (USD)"
+    });
+
+  }
+
+  // 이름순 정렬
+  uniqueOptions.sort((a, b) => {
+
+    return a.text.localeCompare(
+      b.text,
+
+      currentLanguage === "ko"
+        ? "ko-KR"
+        : "en-US",
+
+      { sensitivity: "base" }
+    );
+
+  });
+
+  // 기존 옵션 삭제
   fromCurrencySelect.innerHTML = "";
   toCurrencySelect.innerHTML = "";
 
-  options.sort((a, b) => a.text.localeCompare(b.text, lang === "ko" ? "ko-KR" : "en-US", { sensitivity: "base" }));
+  // 새로운 옵션 추가
+  uniqueOptions.forEach(option => {
 
-  options.forEach(option => {
-    const fromOpt = document.createElement('option');
-    fromOpt.value = option.value;
-    fromOpt.text = option.text;
+    const fromOption = document.createElement("option");
+    const toOption = document.createElement("option");
 
-    const toOpt = document.createElement('option');
-    toOpt.value = option.value;
-    toOpt.text = option.text;
+    fromOption.value = option.value;
+    fromOption.textContent = option.text;
 
-    // 첫 렌더링일 때는 USD -> KRW 설정
-    if (isFirstRender && option.value === "USD") {
-      fromOpt.selected = true;
-    }
-    if (isFirstRender && option.value === "KRW") {
-      toOpt.selected = true;
-    }
+    toOption.value = option.value;
+    toOption.textContent = option.text;
 
-    fromCurrencySelect.appendChild(fromOpt);
-    toCurrencySelect.appendChild(toOpt);
+    fromCurrencySelect.appendChild(fromOption);
+    toCurrencySelect.appendChild(toOption);
+
   });
 
-  // 이후부터는 이전 선택 값 유지
-  if (!isFirstRender) {
-    fromCurrencySelect.value = previousFromValue || fromCurrencySelect.value;
-    toCurrencySelect.value = previousToValue || toCurrencySelect.value;
-  }
 
-  isFirstRender = false;
+  // 최초 실행
+  if (isFirstRender) {
+
+    fromCurrencySelect.value = "USD";
+    toCurrencySelect.value = "KRW";
+
+    isFirstRender = false;
+
+  } else {
+
+    // 기존에 선택했던 통화 유지
+    fromCurrencySelect.value = previousFromValue || "USD";
+    toCurrencySelect.value = previousToValue || "KRW";
+
+  }
 }
 
-// 언어 변경 시 처리
-i18next.on("languageChanged", (lng) => {
-  previousFromValue = fromCurrencySelect.value;
-  previousToValue = toCurrencySelect.value;
-  updateContent();
-  renderCurrencyOptions(lng);
-  updateExchangeRate();
-});
 
-// 환율 계산
-function updateExchangeRate() {
+// ========================================
+// 11. 환율 계산
+// ========================================
+
+async function updateExchangeRate() {
+
+  // 새 요청 번호 발급
+  const currentRequestId = ++requestId;
+
+  // 입력값 가져오기
   const fromCurrency = fromCurrencySelect.value;
   const toCurrency = toCurrencySelect.value;
-  const amount = parseFloat(amountInput.value);
 
-  if (isNaN(amount)) {
-    resultText.innerText = `올바른 값을 입력하십시오. \n Please input a right value.`;
+  const amount = Number(amountInput.value);
+
+
+  // 금액 유효성 검사
+  if (
+    amountInput.value.trim() === "" ||
+    !Number.isFinite(amount) ||
+    amount < 0
+  ) {
+
+    resultText.textContent =
+      `${t("result")} ${t("invalid")}`;
+
     return;
   }
 
-  const url = `https://api.manana.kr/exchange/rate.json?base=${toCurrency}&code=${fromCurrency}`;
-  fetch(url)
-    .then(response => response.json())
-    .then(data => {
-      const exchangeRate = data[0].rate;
-      const convertedAmount = (amount * exchangeRate).toFixed(2);
-      const formatted = displayDeposit(parseFloat(convertedAmount.replace(/,/g, '')));
-      const Ddate = i18next.t("date")
-      resultText.innerText = `${amount} ${fromCurrency} = ${formatted} ${toCurrency} ${Ddate + data[0].date.replace(/20(\d{2}-\d{2}-\d{2} \d{2}:\d{2}):\d{2}/, '$1') + ')'}`;
-    })
-    .catch(error => {
-      console.error('Error fetching exchange rate:', error);
-      resultText.innerText = `API를 가져오는 과정에서 에러가 발생했습니다. 다시 시도해주십시오. \n We have a error during getting API. Please try again.`;
-    });
+
+  // 같은 통화를 선택한 경우
+  if (fromCurrency === toCurrency) {
+
+    resultText.textContent =
+      `${t("result")} ${formatAmount(amount)} ${fromCurrency} = ${formatAmount(amount)} ${toCurrency}`;
+
+    return;
+  }
+
+
+  // 로딩 표시
+  resultText.textContent = t("loading");
+
+
+  // API 주소
+  const url =
+    `https://api.manana.kr/exchange/rate.json?base=${encodeURIComponent(toCurrency)}&code=${encodeURIComponent(fromCurrency)}`;
+
+
+  try {
+
+    // 환율 데이터 요청
+    const response = await fetch(url);
+
+    if (!response.ok) {
+      throw new Error(`HTTP error: ${response.status}`);
+    }
+
+    const data = await response.json();
+
+
+    // 데이터 확인
+    if (
+      !Array.isArray(data) ||
+      !data[0] ||
+      !Number.isFinite(Number(data[0].rate))
+    ) {
+
+      throw new Error("Invalid exchange rate data");
+
+    }
+
+
+    // 새로운 요청이 시작되었다면 이전 결과 무시
+    if (currentRequestId !== requestId) {
+      return;
+    }
+
+
+    // 환율 가져오기
+    const exchangeRate = Number(data[0].rate);
+
+    // 환전된 금액 계산
+    const convertedAmount = amount * exchangeRate;
+
+    // 금액 형식 변경
+    const formattedAmount = formatAmount(convertedAmount);
+
+
+    // 기준 날짜
+    let dateText = "";
+
+    if (data[0].date) {
+
+      const formattedDate = data[0].date.replace(
+        /20(\d{2}-\d{2}-\d{2} \d{2}:\d{2}):\d{2}/,
+        "$1"
+      );
+
+      dateText = ` (${t("date")}: ${formattedDate})`;
+
+    }
+
+
+    // 결과 출력
+    resultText.textContent =
+      `${t("result")} ${formatAmount(amount)} ${fromCurrency} = ${formattedAmount} ${toCurrency}${dateText}`;
+
+
+  } catch (error) {
+
+    console.error("환율 계산 오류:", error);
+
+    // 가장 최근 요청에 대해서만 오류 표시
+    if (currentRequestId === requestId) {
+
+      resultText.textContent = t("error");
+
+    }
+
+  }
+
 }
 
-// 환율 데이터 불러오기
-fetch('https://api.manana.kr/exchange.json')
-  .then(response => response.json())
-  .then(data => {
-    currencyData = data;
-    renderCurrencyOptions(i18next.language);
+
+// ========================================
+// 12. 계산 버튼 이벤트
+// ========================================
+
+convertButton.addEventListener("click", () => {
+
+  updateExchangeRate();
+
+});
+
+
+// ========================================
+// 13. Enter 키 이벤트
+// ========================================
+
+amountInput.addEventListener("keydown", event => {
+
+  if (event.key === "Enter") {
+
+    event.preventDefault();
+
     updateExchangeRate();
 
-    document.getElementById('convertButton').addEventListener('click', updateExchangeRate);
-    amountInput.addEventListener('keypress', event => {
-      if (event.key === 'Enter') {
-        event.preventDefault();
-        updateExchangeRate();
-      }
-    });
-  })
-  .catch(error => console.error(error));
+  }
+
+});
+
+
+// ========================================
+// 14. 통화 선택 변경 이벤트
+// ========================================
+
+fromCurrencySelect.addEventListener("change", () => {
+
+  updateExchangeRate();
+
+});
+
+toCurrencySelect.addEventListener("change", () => {
+
+  updateExchangeRate();
+
+});
+
+
+// ========================================
+// 15. 프로그램 초기화
+// ========================================
+
+async function initializeApp() {
+
+  // 처음 화면 언어 설정
+  updateContent();
+
+  try {
+
+    // 전체 통화 데이터 가져오기
+    const response = await fetch(
+      "https://api.manana.kr/exchange.json"
+    );
+
+    if (!response.ok) {
+      throw new Error(`HTTP error: ${response.status}`);
+    }
+
+    // JSON 데이터 저장
+    currencyData = await response.json();
+
+    // 통화 선택창 생성
+    renderCurrencyOptions();
+
+    // 첫 환율 계산
+    updateExchangeRate();
+
+  } catch (error) {
+
+    console.error("통화 데이터 로딩 오류:", error);
+
+    resultText.textContent = t("error");
+
+  }
+
+}
+
+
+// ========================================
+// 16. 프로그램 실행
+// ========================================
+
+initializeApp();
