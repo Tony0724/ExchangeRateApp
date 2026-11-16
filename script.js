@@ -16,6 +16,14 @@ const langSelect = document.getElementById("lang-select");
 // 2. 기본 설정
 // ========================================
 
+// 최대 입력 가능 금액: 9999해
+const MAX_AMOUNT = 9.999e23;
+
+// HTML 입력창에도 최댓값 적용
+amountInput.min = "0";
+amountInput.max = String(MAX_AMOUNT);
+amountInput.step = "any";
+
 // 브라우저 언어에 따라 기본 언어 설정
 let currentLanguage = navigator.language.toLowerCase().startsWith("ko")
   ? "ko"
@@ -52,6 +60,8 @@ const translations = {
 
     invalid: "올바른 금액을 입력해 주세요.",
 
+    maxError: "최대 입력 가능 금액은 9999해입니다.",
+
     loading: "환율을 불러오는 중입니다.",
 
     error: "환율 정보를 가져오는 과정에서 오류가 발생했습니다. 다시 시도해 주세요.",
@@ -75,6 +85,8 @@ const translations = {
 
     invalid: "Please enter a valid amount.",
 
+    maxError: "The maximum amount is 9999 Hae.",
+
     loading: "Loading exchange rate...",
 
     error: "An error occurred while retrieving exchange rate. Please try again.",
@@ -96,36 +108,29 @@ function t(key) {
 
 function updateContent() {
 
-  // HTML 언어 변경
   document.documentElement.lang = currentLanguage;
 
-  // 페이지 제목 변경
   document.title = t("title");
 
-  // 제목 변경
-  document.querySelector(".header p").textContent = t("header");
+  document.querySelector(".header p").textContent =
+    t("header");
 
-  // 입력창 설명 변경
   document.querySelector('label[for="amount"]').textContent =
     t("amount");
 
-  // 통화 선택 설명 변경
   document.querySelector('label[for="from-currency"]').textContent =
     t("fromCurrency");
 
   document.querySelector('label[for="to-currency"]').textContent =
     t("toCurrency");
 
-  // 입력창 안내 문구 변경
   amountInput.placeholder = t("placeholder");
 
-  // 계산 버튼 변경
   convertButton.textContent = t("button");
 
   // 현재 언어를 선택창에 표시
   langSelect.value = currentLanguage;
 
-  // 결과 영역 변경
   resultText.textContent = t("result");
 }
 
@@ -136,7 +141,6 @@ function updateContent() {
 
 langSelect.addEventListener("change", () => {
 
-  // 선택한 언어 가져오기
   currentLanguage = langSelect.value;
 
   // 화면의 언어 변경
@@ -155,27 +159,35 @@ langSelect.addEventListener("change", () => {
 
 
 // ========================================
-// 6. 숫자를 만, 억, 조, 경 단위로 표시
+// 6. 숫자를 만, 억, 조, 경, 해 단위로 표시
 // ========================================
 
 function displayDeposit(target) {
 
-  const unitWords = ["", "만", "억", "조", "경", "해"];
+  const unitWords = [
+    "", "만", "억", "조", "경", "해",
+    "자", "양", "구", "간", "정", "재", "극"
+  ];
 
-  const integerPart = Math.floor(target);
+  if (!Number.isFinite(target)) {
+    return "";
+  }
 
-  const decimalPart = (target - integerPart).toFixed(2).slice(1);
+  const rounded = Math.round(Math.abs(target) * 100) / 100;
 
-  let remaining = integerPart;
+  let remaining = Math.floor(rounded);
+
+  const decimalPart =
+    (rounded - remaining).toFixed(2).slice(1);
 
   let resultArray = [];
 
   // 큰 단위부터 계산
   for (let i = unitWords.length - 1; i >= 0; i--) {
 
-    const unitValue = Math.floor(
-      remaining / Math.pow(10000, i)
-    );
+    const unit = Math.pow(10000, i);
+
+    const unitValue = Math.floor(remaining / unit);
 
     if (unitValue > 0) {
 
@@ -183,18 +195,27 @@ function displayDeposit(target) {
         unitValue.toLocaleString("ko-KR") + unitWords[i]
       );
 
-      remaining %= Math.pow(10000, i);
+      remaining -= unitValue * unit;
     }
   }
 
   // 나머지 숫자 표시
   if (remaining > 0) {
+
     resultArray.push(
       remaining.toLocaleString("ko-KR")
     );
+
   }
 
-  return resultArray.join(" ") + decimalPart;
+  // 0인 경우
+  if (resultArray.length === 0) {
+    resultArray.push("0");
+  }
+
+  return (target < 0 ? "-" : "") +
+    resultArray.join(" ") +
+    decimalPart;
 }
 
 
@@ -381,15 +402,26 @@ function renderCurrencyOptions() {
     ).values()
   ];
 
-  // USD가 목록에 없으면 추가
+  // USD가 없으면 추가
   if (!uniqueOptions.some(option => option.value === "USD")) {
 
     uniqueOptions.push({
       value: "USD",
-
       text: currentLanguage === "ko"
         ? "미국 달러 (USD)"
         : "US Dollar (USD)"
+    });
+
+  }
+
+  // KRW가 없으면 추가
+  if (!uniqueOptions.some(option => option.value === "KRW")) {
+
+    uniqueOptions.push({
+      value: "KRW",
+      text: currentLanguage === "ko"
+        ? "대한민국 원 (KRW)"
+        : "South Korean Won (KRW)"
     });
 
   }
@@ -442,8 +474,11 @@ function renderCurrencyOptions() {
   } else {
 
     // 기존에 선택했던 통화 유지
-    fromCurrencySelect.value = previousFromValue || "USD";
-    toCurrencySelect.value = previousToValue || "KRW";
+    fromCurrencySelect.value =
+      previousFromValue || "USD";
+
+    toCurrencySelect.value =
+      previousToValue || "KRW";
 
   }
 }
@@ -462,18 +497,30 @@ async function updateExchangeRate() {
   const fromCurrency = fromCurrencySelect.value;
   const toCurrency = toCurrencySelect.value;
 
-  const amount = Number(amountInput.value);
+  const rawAmount = amountInput.value.trim();
+
+  const amount = Number(rawAmount);
 
 
   // 금액 유효성 검사
   if (
-    amountInput.value.trim() === "" ||
+    rawAmount === "" ||
     !Number.isFinite(amount) ||
     amount < 0
   ) {
 
     resultText.textContent =
       `${t("result")} ${t("invalid")}`;
+
+    return;
+  }
+
+
+  // 최대 입력 금액 검사
+  if (amount > MAX_AMOUNT) {
+
+    resultText.textContent =
+      `${t("result")} ${t("maxError")}`;
 
     return;
   }
@@ -530,6 +577,10 @@ async function updateExchangeRate() {
 
     // 환율 가져오기
     const exchangeRate = Number(data[0].rate);
+
+    if (exchangeRate <= 0) {
+      throw new Error("Invalid exchange rate");
+    }
 
     // 환전된 금액 계산
     const convertedAmount = amount * exchangeRate;
