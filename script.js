@@ -17,12 +17,10 @@ const langSelect = document.getElementById("lang-select");
 // ========================================
 
 // 최대 입력 가능 금액: 9999해
-const MAX_AMOUNT = 9.999e23;
+const MAX_AMOUNT = 999999999999999999999999n;
 
-// HTML 입력창에도 최댓값 적용
-amountInput.min = "0";
-amountInput.max = String(MAX_AMOUNT);
-amountInput.step = "any";
+// 입력 문자열 최대 길이
+const MAX_INPUT_LENGTH = 100;
 
 // 브라우저 언어에 따라 기본 언어 설정
 let currentLanguage = navigator.language.toLowerCase().startsWith("ko")
@@ -44,7 +42,9 @@ let requestId = 0;
 // ========================================
 
 const translations = {
+
   ko: {
+
     title: "환율 계산기",
     header: "💱 환율 계산기",
 
@@ -67,9 +67,11 @@ const translations = {
     error: "환율 정보를 가져오는 과정에서 오류가 발생했습니다. 다시 시도해 주세요.",
 
     date: "기준일"
+
   },
 
   en: {
+
     title: "Exchange Rate Calculator",
     header: "💱 Exchange Rate Calculator",
 
@@ -92,13 +94,17 @@ const translations = {
     error: "An error occurred while retrieving exchange rate. Please try again.",
 
     date: "Date"
+
   }
+
 };
 
 
 // 현재 언어의 번역 가져오기
 function t(key) {
+
   return translations[currentLanguage][key];
+
 }
 
 
@@ -108,30 +114,39 @@ function t(key) {
 
 function updateContent() {
 
+  // HTML 언어 변경
   document.documentElement.lang = currentLanguage;
 
+  // 페이지 제목 변경
   document.title = t("title");
 
+  // 제목 변경
   document.querySelector(".header p").textContent =
     t("header");
 
+  // 입력창 설명 변경
   document.querySelector('label[for="amount"]').textContent =
     t("amount");
 
+  // 통화 선택 설명 변경
   document.querySelector('label[for="from-currency"]').textContent =
     t("fromCurrency");
 
   document.querySelector('label[for="to-currency"]').textContent =
     t("toCurrency");
 
+  // 입력창 안내 문구 변경
   amountInput.placeholder = t("placeholder");
 
+  // 계산 버튼 변경
   convertButton.textContent = t("button");
 
   // 현재 언어를 선택창에 표시
   langSelect.value = currentLanguage;
 
+  // 결과 영역 변경
   resultText.textContent = t("result");
+
 }
 
 
@@ -154,81 +169,241 @@ langSelect.addEventListener("change", () => {
 
     // 환율 다시 계산
     updateExchangeRate();
+
   }
+
 });
 
 
 // ========================================
-// 6. 숫자를 만, 억, 조, 경, 해 단위로 표시
+// 6. 정확한 십진수 처리
 // ========================================
 
-function displayDeposit(target) {
+function parseDecimal(value) {
 
-  const unitWords = [
-    "", "만", "억", "조", "경", "해",
-    "자", "양", "구", "간", "정", "재", "극"
-  ];
+  let text = String(value).trim();
 
-  if (!Number.isFinite(target)) {
-    return "";
+  // 빈 문자열 검사
+  if (text === "" || text.length > MAX_INPUT_LENGTH) {
+    return null;
   }
 
-  const rounded = Math.round(Math.abs(target) * 100) / 100;
+  // 쉼표가 있는 경우 올바른 천 단위 표기인지 검사
+  if (text.includes(",")) {
 
-  let remaining = Math.floor(rounded);
+    const validGrouping =
+      /^[+-]?\d{1,3}(?:,\d{3})+(?:\.\d*)?(?:e[+-]?\d+)?$/i;
 
-  const decimalPart =
-    (rounded - remaining).toFixed(2).slice(1);
-
-  let resultArray = [];
-
-  // 큰 단위부터 계산
-  for (let i = unitWords.length - 1; i >= 0; i--) {
-
-    const unit = Math.pow(10000, i);
-
-    const unitValue = Math.floor(remaining / unit);
-
-    if (unitValue > 0) {
-
-      resultArray.push(
-        unitValue.toLocaleString("ko-KR") + unitWords[i]
-      );
-
-      remaining -= unitValue * unit;
+    if (!validGrouping.test(text)) {
+      return null;
     }
-  }
 
-  // 나머지 숫자 표시
-  if (remaining > 0) {
-
-    resultArray.push(
-      remaining.toLocaleString("ko-KR")
-    );
+    text = text.replace(/,/g, "");
 
   }
 
-  // 0인 경우
-  if (resultArray.length === 0) {
-    resultArray.push("0");
+  // 정규식으로 숫자 형식 검사
+  const match = text.match(
+    /^([+-]?)(?:(\d+)(?:\.(\d*))?|\.(\d+))(?:e([+-]?\d+))?$/i
+  );
+
+  if (!match) {
+    return null;
   }
 
-  return (target < 0 ? "-" : "") +
-    resultArray.join(" ") +
-    decimalPart;
+  // 부호
+  const sign = match[1] === "-" ? -1n : 1n;
+
+  // 정수 부분
+  const integerPart = match[2] || "0";
+
+  // 소수 부분
+  const decimalPart = match[3] ?? match[4] ?? "";
+
+  // 지수 부분
+  const exponent = Number(match[5] || 0);
+
+  if (
+    !Number.isSafeInteger(exponent) ||
+    Math.abs(exponent) > 100
+  ) {
+    return null;
+  }
+
+  // 숫자를 하나의 문자열로 결합
+  let digits = integerPart + decimalPart;
+
+  let scale = decimalPart.length - exponent;
+
+  // 소수점 이동
+  if (scale < 0) {
+
+    if (digits.length - scale > MAX_INPUT_LENGTH) {
+      return null;
+    }
+
+    digits += "0".repeat(-scale);
+
+    scale = 0;
+
+  }
+
+  // 지나치게 긴 소수점 제한
+  if (scale > 100 || digits.length > MAX_INPUT_LENGTH) {
+    return null;
+  }
+
+  // BigInt로 변환
+  let coefficient = BigInt(digits || "0") * sign;
+
+  // 불필요한 소수점 뒤 0 제거
+  while (
+    scale > 0 &&
+    coefficient % 10n === 0n
+  ) {
+
+    coefficient /= 10n;
+
+    scale--;
+
+  }
+
+  return {
+    coefficient,
+    scale
+  };
+
 }
 
 
 // ========================================
-// 7. 숫자 표시 형식
+// 7. 십진수 곱셈
 // ========================================
 
-function formatAmount(number) {
+function multiplyDecimals(a, b) {
+
+  return {
+
+    coefficient: a.coefficient * b.coefficient,
+
+    scale: a.scale + b.scale
+
+  };
+
+}
+
+
+// ========================================
+// 8. 소수점 둘째 자리까지 반올림
+// ========================================
+
+function toCents(value) {
+
+  const negative = value.coefficient < 0n;
+
+  const coefficient = negative
+    ? -value.coefficient
+    : value.coefficient;
+
+  let result;
+
+  if (value.scale <= 2) {
+
+    result =
+      coefficient * 10n ** BigInt(2 - value.scale);
+
+  } else {
+
+    const divisor =
+      10n ** BigInt(value.scale - 2);
+
+    result = coefficient / divisor;
+
+    const remainder = coefficient % divisor;
+
+    // 반올림
+    if (remainder * 2n >= divisor) {
+
+      result++;
+
+    }
+
+  }
+
+  return negative ? -result : result;
+
+}
+
+
+// ========================================
+// 9. 한국어 큰 숫자 단위 표시
+// ========================================
+
+function displayDeposit(target) {
+
+  const units = [
+    "",
+    "만",
+    "억",
+    "조",
+    "경",
+    "해",
+    "자",
+    "양",
+    "구",
+    "간",
+    "정",
+    "재",
+    "극"
+  ];
+
+  if (target === 0n) {
+    return "0";
+  }
+
+  let remaining = target;
+  let index = 0;
+
+  const result = [];
+
+  while (remaining > 0n) {
+
+    const group = remaining % 10000n;
+
+    if (group > 0n) {
+
+      // 빈 문자열도 정상적인 단위로 처리
+      const unit = units[index] ?? "";
+
+      result.unshift(
+        `${group.toLocaleString("ko-KR")}${unit}`
+      );
+
+    }
+
+    remaining /= 10000n;
+    index++;
+
+  }
+
+  return result.join(" ");
+
+}
+
+
+// ========================================
+// 10. 정수 부분 표시
+// ========================================
+
+function formatInteger(integerPart) {
 
   // 한국어 모드에서 1만 이상이면 단위 표시
-  if (currentLanguage === "ko" && number >= 10000) {
+  if (
+    currentLanguage === "ko" &&
+    integerPart >= 10000n
+  ) {
 
-    return displayDeposit(number);
+    return displayDeposit(integerPart);
 
   }
 
@@ -236,15 +411,82 @@ function formatAmount(number) {
     ? "ko-KR"
     : "en-US";
 
-  return new Intl.NumberFormat(locale, {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2
-  }).format(number);
+  return integerPart.toLocaleString(locale);
+
 }
 
 
 // ========================================
-// 8. 특수 통화 이름
+// 11. 입력 금액 표시
+// ========================================
+
+function formatInputAmount(value) {
+
+  const negative = value.coefficient < 0n;
+
+  const absolute = negative
+    ? -value.coefficient
+    : value.coefficient;
+
+  const divisor =
+    10n ** BigInt(value.scale);
+
+  const integerPart = absolute / divisor;
+
+  const decimalPart = absolute % divisor;
+
+  const formattedInteger = formatInteger(integerPart);
+
+  let formattedDecimal = "";
+
+  if (value.scale > 0) {
+
+    formattedDecimal =
+      decimalPart.toString().padStart(value.scale, "0");
+
+  }
+
+  return (
+    (negative ? "-" : "") +
+    formattedInteger +
+    (formattedDecimal ? "." + formattedDecimal : "")
+  );
+
+}
+
+
+// ========================================
+// 12. 최종 계산 금액 표시
+// ========================================
+
+function formatAmount(cents) {
+
+  const negative = cents < 0n;
+
+  const absolute = negative
+    ? -cents
+    : cents;
+
+  const integerPart = absolute / 100n;
+
+  const decimalPart = (absolute % 100n)
+    .toString()
+    .padStart(2, "0");
+
+  const formattedInteger = formatInteger(integerPart);
+
+  return (
+    (negative ? "-" : "") +
+    formattedInteger +
+    "." +
+    decimalPart
+  );
+
+}
+
+
+// ========================================
+// 13. 특수 통화 이름
 // ========================================
 
 const specialCases = {
@@ -338,11 +580,12 @@ const specialCases = {
     ko: "필리핀 페소",
     en: "Philippine peso"
   }
+
 };
 
 
 // ========================================
-// 9. 통화 옵션 생성
+// 14. 통화 옵션 생성
 // ========================================
 
 function createOptions(data) {
@@ -350,7 +593,8 @@ function createOptions(data) {
   return data.map(item => {
 
     // 통화 코드 추출
-    const symbol = String(item.symbol || "").replace("=X", "");
+    const symbol = String(item.symbol || "")
+      .replace("=X", "");
 
     const value = symbol.includes("/")
       ? symbol.split("/").pop()
@@ -374,22 +618,27 @@ function createOptions(data) {
     }
 
     return {
+
       value: value,
+
       text: `${name || value} (${value})`
+
     };
 
   }).filter(option => option.value);
+
 }
 
 
 // ========================================
-// 10. 통화 선택창 렌더링
+// 15. 통화 선택창 렌더링
 // ========================================
 
 function renderCurrencyOptions() {
 
-  // 기존에 선택한 통화 기억
+  // 기존 선택 통화 기억
   const previousFromValue = fromCurrencySelect.value;
+
   const previousToValue = toCurrencySelect.value;
 
   // 통화 옵션 생성
@@ -397,39 +646,58 @@ function renderCurrencyOptions() {
 
   // 중복 통화 제거
   const uniqueOptions = [
+
     ...new Map(
-      options.map(option => [option.value, option])
+      options.map(option => [
+        option.value,
+        option
+      ])
     ).values()
+
   ];
 
+
   // USD가 없으면 추가
-  if (!uniqueOptions.some(option => option.value === "USD")) {
+  if (
+    !uniqueOptions.some(option => option.value === "USD")
+  ) {
 
     uniqueOptions.push({
+
       value: "USD",
+
       text: currentLanguage === "ko"
         ? "미국 달러 (USD)"
         : "US Dollar (USD)"
+
     });
 
   }
 
+
   // KRW가 없으면 추가
-  if (!uniqueOptions.some(option => option.value === "KRW")) {
+  if (
+    !uniqueOptions.some(option => option.value === "KRW")
+  ) {
 
     uniqueOptions.push({
+
       value: "KRW",
+
       text: currentLanguage === "ko"
         ? "대한민국 원 (KRW)"
         : "South Korean Won (KRW)"
+
     });
 
   }
+
 
   // 이름순 정렬
   uniqueOptions.sort((a, b) => {
 
     return a.text.localeCompare(
+
       b.text,
 
       currentLanguage === "ko"
@@ -437,102 +705,144 @@ function renderCurrencyOptions() {
         : "en-US",
 
       { sensitivity: "base" }
+
     );
 
   });
 
+
   // 기존 옵션 삭제
   fromCurrencySelect.innerHTML = "";
+
   toCurrencySelect.innerHTML = "";
+
 
   // 새로운 옵션 추가
   uniqueOptions.forEach(option => {
 
     const fromOption = document.createElement("option");
+
     const toOption = document.createElement("option");
 
     fromOption.value = option.value;
+
     fromOption.textContent = option.text;
 
     toOption.value = option.value;
+
     toOption.textContent = option.text;
 
     fromCurrencySelect.appendChild(fromOption);
+
     toCurrencySelect.appendChild(toOption);
 
   });
+
+
+  // 사용 가능한 통화 확인
+  const availableCurrencies = new Set(
+    uniqueOptions.map(option => option.value)
+  );
 
 
   // 최초 실행
   if (isFirstRender) {
 
     fromCurrencySelect.value = "USD";
+
     toCurrencySelect.value = "KRW";
 
     isFirstRender = false;
 
   } else {
 
-    // 기존에 선택했던 통화 유지
+    // 기존 통화 선택 유지
     fromCurrencySelect.value =
-      previousFromValue || "USD";
+      availableCurrencies.has(previousFromValue)
+        ? previousFromValue
+        : "USD";
 
     toCurrencySelect.value =
-      previousToValue || "KRW";
+      availableCurrencies.has(previousToValue)
+        ? previousToValue
+        : "KRW";
 
   }
+
 }
 
 
 // ========================================
-// 11. 환율 계산
+// 16. 환율 계산
 // ========================================
 
 async function updateExchangeRate() {
 
-  // 새 요청 번호 발급
+  // 새로운 요청 번호
   const currentRequestId = ++requestId;
 
-  // 입력값 가져오기
+  // 선택한 통화
   const fromCurrency = fromCurrencySelect.value;
+
   const toCurrency = toCurrencySelect.value;
 
+  // 입력 금액
   const rawAmount = amountInput.value.trim();
 
-  const amount = Number(rawAmount);
+  // 빈 문자열 검사 및 십진수 변환
+  const amount = parseDecimal(rawAmount);
 
 
-  // 금액 유효성 검사
+  // 잘못된 입력 검사
   if (
-    rawAmount === "" ||
-    !Number.isFinite(amount) ||
-    amount < 0
+    amount === null ||
+    amount.coefficient < 0n
   ) {
 
     resultText.textContent =
       `${t("result")} ${t("invalid")}`;
 
     return;
+
   }
 
 
   // 최대 입력 금액 검사
-  if (amount > MAX_AMOUNT) {
+  const amountLimit =
+    MAX_AMOUNT * (10n ** BigInt(amount.scale));
+
+  if (amount.coefficient > amountLimit) {
 
     resultText.textContent =
       `${t("result")} ${t("maxError")}`;
 
     return;
+
   }
 
 
-  // 같은 통화를 선택한 경우
+  // 통화 선택 검사
+  if (!fromCurrency || !toCurrency) {
+
+    resultText.textContent = t("error");
+
+    return;
+
+  }
+
+
+  // 입력 금액 표시
+  const formattedInput = formatInputAmount(amount);
+
+
+  // 같은 통화인 경우
   if (fromCurrency === toCurrency) {
 
     resultText.textContent =
-      `${t("result")} ${formatAmount(amount)} ${fromCurrency} = ${formatAmount(amount)} ${toCurrency}`;
+      `${t("result")} ${formattedInput} ${fromCurrency} = ${formattedInput} ${toCurrency}`;
 
     return;
+
   }
 
 
@@ -551,7 +861,9 @@ async function updateExchangeRate() {
     const response = await fetch(url);
 
     if (!response.ok) {
+
       throw new Error(`HTTP error: ${response.status}`);
+
     }
 
     const data = await response.json();
@@ -561,7 +873,7 @@ async function updateExchangeRate() {
     if (
       !Array.isArray(data) ||
       !data[0] ||
-      !Number.isFinite(Number(data[0].rate))
+      data[0].rate === undefined
     ) {
 
       throw new Error("Invalid exchange rate data");
@@ -569,44 +881,66 @@ async function updateExchangeRate() {
     }
 
 
-    // 새로운 요청이 시작되었다면 이전 결과 무시
-    if (currentRequestId !== requestId) {
-      return;
-    }
+    // 환율을 십진수로 변환
+    const exchangeRate = parseDecimal(
+      String(data[0].rate)
+    );
 
 
-    // 환율 가져오기
-    const exchangeRate = Number(data[0].rate);
+    // 환율 유효성 검사
+    if (
+      exchangeRate === null ||
+      exchangeRate.coefficient <= 0n
+    ) {
 
-    if (exchangeRate <= 0) {
       throw new Error("Invalid exchange rate");
+
     }
 
-    // 환전된 금액 계산
-    const convertedAmount = amount * exchangeRate;
 
-    // 금액 형식 변경
-    const formattedAmount = formatAmount(convertedAmount);
+    // 이전 요청의 결과 무시
+    if (currentRequestId !== requestId) {
+
+      return;
+
+    }
 
 
-    // 기준 날짜
+    // 정확한 십진수 곱셈
+    const convertedAmount = multiplyDecimals(
+      amount,
+      exchangeRate
+    );
+
+
+    // 소수점 둘째 자리까지 반올림
+    const formattedAmount = formatAmount(
+      toCents(convertedAmount)
+    );
+
+
+    // 기준 날짜 표시
     let dateText = "";
 
     if (data[0].date) {
 
       const formattedDate = data[0].date.replace(
+
         /20(\d{2}-\d{2}-\d{2} \d{2}:\d{2}):\d{2}/,
+
         "$1"
+
       );
 
-      dateText = ` (${t("date")}: ${formattedDate})`;
+      dateText =
+        ` (${t("date")}: ${formattedDate})`;
 
     }
 
 
-    // 결과 출력
+    // 최종 결과 출력
     resultText.textContent =
-      `${t("result")} ${formatAmount(amount)} ${fromCurrency} = ${formattedAmount} ${toCurrency}${dateText}`;
+      `${t("result")} ${formattedInput} ${fromCurrency} = ${formattedAmount} ${toCurrency}${dateText}`;
 
 
   } catch (error) {
@@ -626,7 +960,7 @@ async function updateExchangeRate() {
 
 
 // ========================================
-// 12. 계산 버튼 이벤트
+// 17. 계산 버튼 이벤트
 // ========================================
 
 convertButton.addEventListener("click", () => {
@@ -637,7 +971,7 @@ convertButton.addEventListener("click", () => {
 
 
 // ========================================
-// 13. Enter 키 이벤트
+// 18. Enter 키 이벤트
 // ========================================
 
 amountInput.addEventListener("keydown", event => {
@@ -654,7 +988,7 @@ amountInput.addEventListener("keydown", event => {
 
 
 // ========================================
-// 14. 통화 선택 변경 이벤트
+// 19. 통화 선택 변경 이벤트
 // ========================================
 
 fromCurrencySelect.addEventListener("change", () => {
@@ -671,13 +1005,14 @@ toCurrencySelect.addEventListener("change", () => {
 
 
 // ========================================
-// 15. 프로그램 초기화
+// 20. 프로그램 초기화
 // ========================================
 
 async function initializeApp() {
 
   // 처음 화면 언어 설정
   updateContent();
+
 
   try {
 
@@ -687,17 +1022,29 @@ async function initializeApp() {
     );
 
     if (!response.ok) {
+
       throw new Error(`HTTP error: ${response.status}`);
+
     }
+
 
     // JSON 데이터 저장
     currencyData = await response.json();
 
+    if (!Array.isArray(currencyData)) {
+
+      throw new Error("Invalid currency data");
+
+    }
+
+
     // 통화 선택창 생성
     renderCurrencyOptions();
 
+
     // 첫 환율 계산
     updateExchangeRate();
+
 
   } catch (error) {
 
@@ -711,7 +1058,7 @@ async function initializeApp() {
 
 
 // ========================================
-// 16. 프로그램 실행
+// 21. 프로그램 실행
 // ========================================
 
 initializeApp();
