@@ -77,8 +77,8 @@ body {
 .header p {
   font-size: clamp(15px, 4vw, 18px);
   font-weight: bold;
-
   min-width: 0;
+  background-color: rgb(64, 0, 255);
 }
 
 
